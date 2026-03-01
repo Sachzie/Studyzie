@@ -55,6 +55,9 @@ router.post('/', async (req, res) => {
 
     res.send(user);
   } catch (error) {
+    if (error.code === 11000) {
+      return res.status(400).json({ success: false, message: 'User with this email already exists' });
+    }
     return res.status(500).json({ success: false, error: error });
   }
 });
@@ -81,6 +84,9 @@ router.post('/register', async (req, res) => {
 
     res.send(user);
   } catch (error) {
+    if (error.code === 11000) {
+      return res.status(400).json({ success: false, message: 'User with this email already exists' });
+    }
     return res.status(500).json({ success: false, error: error });
   }
 });
@@ -216,7 +222,7 @@ router.post('/login', async (req, res) => {
         { expiresIn: '1d' }
       );
 
-      res.status(200).send({ user: user.email, token: token });
+      res.status(200).send({ user: user.email, token: token, userId: user.id, isAdmin: user.isAdmin });
     } else {
       res.status(400).send('password is wrong');
     }

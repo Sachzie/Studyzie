@@ -1,9 +1,9 @@
 import React, { useCallback, useState } from "react";
 import { View, Text, FlatList, StyleSheet, StatusBar, Dimensions, TouchableOpacity } from 'react-native'
 import axios from 'axios'
-import baseURL from "../../assets/common/baseurl";
+import baseURL from "../assets/common/baseurl";
 import { useFocusEffect } from '@react-navigation/native'
-import OrderCard from "../../Shared/OrderCard";
+import OrderCard from "../Shared/OrderCard";
 import { BarChart } from "react-native-chart-kit";
 import { Ionicons } from "@expo/vector-icons";
 

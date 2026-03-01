@@ -2,9 +2,9 @@ import React, { useContext, useState, useCallback } from 'react';
 import { View, Text, StyleSheet, FlatList, StatusBar } from 'react-native';
 import axios from 'axios';
 import { useFocusEffect } from '@react-navigation/native';
-import AuthGlobal from '../../Context/Store/AuthGlobal';
-import baseURL from '../../assets/common/baseurl';
-import OrderCard from '../../Shared/OrderCard';
+import AuthGlobal from '../../backend/Context/Store/AuthGlobal';
+import baseURL from '../assets/common/baseurl';
+import OrderCard from '../Shared/OrderCard';
 
 const MyOrders = (props) => {
     const context = useContext(AuthGlobal);

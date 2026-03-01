@@ -1,8 +1,8 @@
 import React, { useContext, useEffect, useState } from "react";
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator } from "react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
-import AuthGlobal from "../../Context/Store/AuthGlobal";
-import { loginUser } from "../../Context/Actions/Auth.actions";
+import AuthGlobal from "../../backend/Context/Store/AuthGlobal";
+import { loginUser } from "../../backend/Context/Actions/Auth.actions";
 import { Ionicons } from "@expo/vector-icons";
 
 const Login = () => {

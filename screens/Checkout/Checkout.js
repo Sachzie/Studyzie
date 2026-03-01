@@ -1,16 +1,16 @@
 import React, { useEffect, useState, useContext } from 'react'
 import { View, StyleSheet } from 'react-native'
 import { Button } from 'react-native-paper'
-import FormContainer from '../../Shared/FormContainer'
-import Input from '../../Shared/Input'
+import FormContainer from '../Shared/FormContainer'
+import Input from '../Shared/Input'
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view'
 import { useSelector } from 'react-redux'
 import { useNavigation } from '@react-navigation/native';
 import { Picker } from '@react-native-picker/picker'
-import AuthGlobal from '../../Context/Store/AuthGlobal'
+import AuthGlobal from '../../backend/Context/Store/AuthGlobal'
 import Toast from 'react-native-toast-message'
 
-const countries = require("../../assets/data/countries.json");
+const countries = require("../assets/data/countries.json");
 
 const Checkout = (props) => {
     const [user, setUser] = useState('')

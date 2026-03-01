@@ -13,7 +13,7 @@ import {
 import { LineChart } from "react-native-chart-kit";
 import { Ionicons } from "@expo/vector-icons";
 import axios from "axios";
-import baseURL from "../../assets/common/baseurl";
+import baseURL from "../assets/common/baseurl";
 import { useFocusEffect } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 

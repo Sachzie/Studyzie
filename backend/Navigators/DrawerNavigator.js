@@ -7,7 +7,7 @@ import {
 
 import Main from "./Main";
 
-import DrawerContent from "../Shared/DrawerContent";
+import DrawerContent from "../../screens/Shared/DrawerContent";
 
 const NativeDrawer = createDrawerNavigator();
 const DrawerNavigator = () => {

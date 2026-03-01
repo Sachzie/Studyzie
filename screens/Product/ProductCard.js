@@ -4,8 +4,9 @@ import { useNavigation } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import { useDispatch, useSelector } from "react-redux";
 import Toast from "react-native-toast-message";
-import { addToCart } from "../../Redux/Actions/cartActions";
-import AuthGlobal from "../../Context/Store/AuthGlobal";
+import { addToCart } from "../../backend/Redux/Actions/cartActions";
+import AuthGlobal from "../../backend/Context/Store/AuthGlobal";
+import colors from "../assets/common/colors";
 
 const { width } = Dimensions.get("window");
 
@@ -116,11 +117,11 @@ const ProductCard = (props) => {
 const styles = StyleSheet.create({
     container: {
         width: width / 2 - 24,
-        backgroundColor: "#1F2937", // Dark card background
+        backgroundColor: colors.white,
         borderRadius: 16,
         marginBottom: 16,
         elevation: 4,
-        shadowColor: "#000",
+        shadowColor: colors.black,
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
         shadowRadius: 4,
@@ -128,7 +129,7 @@ const styles = StyleSheet.create({
     },
     imageWrap: {
         height: 140,
-        backgroundColor: "#FFFFFF", // White background for image visibility
+        backgroundColor: colors.inputBg,
         justifyContent: "center",
         alignItems: "center",
         position: "relative",
@@ -143,26 +144,26 @@ const styles = StyleSheet.create({
         left: 0,
         right: 0,
         bottom: 0,
-        backgroundColor: "rgba(0,0,0,0.5)",
+        backgroundColor: "rgba(255,255,255,0.7)", // Light overlay instead of dark
         justifyContent: "center",
         alignItems: "center",
     },
     outOfStockText: {
-        color: "#FFFFFF",
+        color: colors.error,
         fontWeight: "bold",
     },
     content: {
         padding: 12,
     },
     title: {
-        color: "#FFFFFF",
+        color: colors.text,
         fontSize: 14,
         fontWeight: "600",
         marginBottom: 4,
         height: 40, // Fixed height for 2 lines
     },
     brand: {
-        color: "#9CA3AF", // Gray text
+        color: colors.textLight,
         fontSize: 12,
         marginBottom: 8,
     },
@@ -173,7 +174,7 @@ const styles = StyleSheet.create({
         marginTop: 4,
     },
     price: {
-        color: "#34D399", // Green accent
+        color: colors.primary,
         fontSize: 16,
         fontWeight: "700",
     },
@@ -183,7 +184,7 @@ const styles = StyleSheet.create({
         gap: 8,
     },
     detailButton: {
-        backgroundColor: "#3B82F6", // Blue button
+        backgroundColor: colors.secondary,
         width: 32,
         height: 32,
         borderRadius: 16,
@@ -192,7 +193,7 @@ const styles = StyleSheet.create({
         marginRight: 8,
     },
     addButton: {
-        backgroundColor: "#10B981", // Green button
+        backgroundColor: colors.primary,
         width: 32,
         height: 32,
         borderRadius: 16,
@@ -200,7 +201,7 @@ const styles = StyleSheet.create({
         alignItems: "center",
     },
     disabledButton: {
-        backgroundColor: "#6B7280",
+        backgroundColor: colors.light,
     },
 });
 

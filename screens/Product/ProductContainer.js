@@ -4,17 +4,18 @@ import { Surface, Text, Searchbar } from "react-native-paper";
 import { useFocusEffect } from "@react-navigation/native";
 import ProductList from "./ProductList";
 import CategoryFilter from "./CategoryFilter";
-import Banner from "../../Shared/Banner";
-import baseURL from "../../assets/common/baseurl";
+import Banner from "../Shared/Banner";
+import baseURL from "../assets/common/baseurl";
 import axios from "axios";
+import colors from "../assets/common/colors";
 
 const IMAGE_SOURCE_BY_KEY = {
-    a4: require("../../Picures/a4.jpg"),
-    ballpen: require("../../Picures/ballpen.jpg"),
-    notebook: require("../../Picures/notebook.jpg"),
-    pencil: require("../../Picures/pencil.jpg"),
-    yellowpad: require("../../Picures/yellowpad.jpg"),
-    oilpastel: require("../../Picures/oilpastel.png"),
+    a4: require("../Picures/a4.jpg"),
+    ballpen: require("../Picures/ballpen.jpg"),
+    notebook: require("../Picures/notebook.jpg"),
+    pencil: require("../Picures/pencil.jpg"),
+    yellowpad: require("../Picures/yellowpad.jpg"),
+    oilpastel: require("../Picures/oilpastel.png"),
 };
 
 const LOCAL_PRODUCTS = [
@@ -27,7 +28,7 @@ const LOCAL_PRODUCTS = [
         countInStock: 42,
         category: { _id: "paper", name: "Paper" },
         categoryId: "paper",
-        imageSource: require("../../Picures/a4.jpg"),
+        imageSource: require("../Picures/a4.jpg"),
     },
     {
         _id: "local-ballpen",
@@ -38,7 +39,7 @@ const LOCAL_PRODUCTS = [
         countInStock: 68,
         category: { _id: "writing", name: "Writing" },
         categoryId: "writing",
-        imageSource: require("../../Picures/ballpen.jpg"),
+        imageSource: require("../Picures/ballpen.jpg"),
     },
     {
         _id: "local-notebook",
@@ -49,7 +50,7 @@ const LOCAL_PRODUCTS = [
         countInStock: 55,
         category: { _id: "notebook", name: "Notebooks" },
         categoryId: "notebook",
-        imageSource: require("../../Picures/notebook.jpg"),
+        imageSource: require("../Picures/notebook.jpg"),
     },
     {
         _id: "local-pencil",
@@ -60,7 +61,7 @@ const LOCAL_PRODUCTS = [
         countInStock: 76,
         category: { _id: "writing", name: "Writing" },
         categoryId: "writing",
-        imageSource: require("../../Picures/pencil.jpg"),
+        imageSource: require("../Picures/pencil.jpg"),
     },
     {
         _id: "local-yellowpad",
@@ -71,7 +72,7 @@ const LOCAL_PRODUCTS = [
         countInStock: 47,
         category: { _id: "paper", name: "Paper" },
         categoryId: "paper",
-        imageSource: require("../../Picures/yellowpad.jpg"),
+        imageSource: require("../Picures/yellowpad.jpg"),
     },
     {
         _id: "local-oilpastel",
@@ -82,7 +83,7 @@ const LOCAL_PRODUCTS = [
         countInStock: 35,
         category: { _id: "art", name: "Art Supplies" },
         categoryId: "art",
-        imageSource: require("../../Picures/oilpastel.png"),
+        imageSource: require("../Picures/oilpastel.png"),
     },
 ];
 
@@ -261,10 +262,6 @@ const ProductContainer = () => {
     return (
         <Surface style={styles.screen}>
             <View style={styles.header}>
-                <View style={styles.headerContent}>
-                    <Text style={styles.headerTitle}>Studyzie</Text>
-                    <Text style={styles.headerSubtitle}>School Supplies</Text>
-                </View>
                 <Searchbar
                     placeholder="Search school supplies"
                     onChangeText={searchProduct}
@@ -272,8 +269,8 @@ const ProductContainer = () => {
                     onClearIconPress={onClearSearch}
                     style={styles.searchbar}
                     inputStyle={styles.searchInput}
-                    iconColor="#103B28"
-                    placeholderTextColor="#6B7280"
+                    iconColor={colors.primary}
+                    placeholderTextColor={colors.placeholder}
                 />
             </View>
 
@@ -298,7 +295,7 @@ const ProductContainer = () => {
 
                     {loading ? (
                         <View style={styles.loaderWrap}>
-                            <ActivityIndicator size="large" color="#10B981" />
+                            <ActivityIndicator size="large" color={colors.primary} />
                         </View>
                     ) : productsCtg.length > 0 ? (
                         <View style={styles.listContainer}>
@@ -324,16 +321,16 @@ const ProductContainer = () => {
 const styles = StyleSheet.create({
     screen: {
         flex: 1,
-        backgroundColor: "#F9FAFB", // Cleaner off-white background
+        backgroundColor: colors.inputBg, // Cleaner off-white background
     },
     header: {
-        backgroundColor: "#FFFFFF",
+        backgroundColor: colors.white,
         paddingHorizontal: 16,
         paddingTop: 50, // Safe area top
         paddingBottom: 16,
         borderBottomLeftRadius: 24,
         borderBottomRightRadius: 24,
-        shadowColor: "#000",
+        shadowColor: colors.black,
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.05,
         shadowRadius: 10,
@@ -348,12 +345,12 @@ const styles = StyleSheet.create({
     headerTitle: {
         fontSize: 22,
         fontWeight: "800",
-        color: "#103B28",
+        color: colors.primary,
         letterSpacing: 0.5,
     },
     headerSubtitle: {
         fontSize: 12,
-        color: "#6B7280",
+        color: colors.textLight,
         fontWeight: "600",
         textTransform: "uppercase",
         letterSpacing: 1,
@@ -366,13 +363,15 @@ const styles = StyleSheet.create({
     },
     searchbar: {
         borderRadius: 12,
-        backgroundColor: "#F3F4F6",
+        backgroundColor: colors.white,
         elevation: 0,
         height: 48,
+        borderWidth: 1,
+        borderColor: colors.light
     },
     searchInput: {
         fontSize: 14,
-        color: "#1F2937",
+        color: colors.text,
         alignSelf: 'center', // Fix text alignment in react-native-paper Searchbar
     },
     categorySection: {
@@ -387,7 +386,7 @@ const styles = StyleSheet.create({
     sectionTitle: {
         fontSize: 20,
         fontWeight: "700",
-        color: "#1F2937",
+        color: colors.text,
     },
     listContainer: {
         flexDirection: "row",
@@ -401,8 +400,8 @@ const styles = StyleSheet.create({
     },
     notice: {
         marginBottom: 16,
-        color: "#065F46",
-        backgroundColor: "#D1FAE5",
+        color: colors.primary,
+        backgroundColor: colors.lighter,
         borderRadius: 8,
         paddingHorizontal: 12,
         paddingVertical: 10,
@@ -418,12 +417,12 @@ const styles = StyleSheet.create({
     emptyTitle: {
         fontSize: 18,
         fontWeight: "700",
-        color: "#4B5563",
+        color: colors.textLight,
         marginBottom: 8,
     },
     emptyText: {
         fontSize: 14,
-        color: "#9CA3AF",
+        color: colors.textLight,
         textAlign: 'center',
     },
 });

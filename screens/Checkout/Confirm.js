@@ -5,10 +5,10 @@ import { useNavigation } from '@react-navigation/native';
 import { useDispatch } from 'react-redux'
 import AsyncStorage from "@react-native-async-storage/async-storage"
 import axios from 'axios';
-import baseURL from '../../assets/common/baseurl';
-import AuthGlobal from '../../Context/Store/AuthGlobal';
+import baseURL from '../assets/common/baseurl';
+import AuthGlobal from '../../backend/Context/Store/AuthGlobal';
 import Toast from 'react-native-toast-message';
-import { clearCart } from '../../Redux/Actions/cartActions';
+import { clearCart } from '../../backend/Redux/Actions/cartActions';
 
 var { width, height } = Dimensions.get("window");
 

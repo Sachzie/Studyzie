@@ -11,7 +11,7 @@ import {
     KeyboardAvoidingView,
     Platform
 } from "react-native"
-import baseURL from "../../assets/common/baseurl";
+import baseURL from "../assets/common/baseurl";
 import axios from "axios";
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { Ionicons } from "@expo/vector-icons";

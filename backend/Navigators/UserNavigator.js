@@ -1,8 +1,7 @@
 import React, { useContext } from "react";
 import { createStackNavigator } from '@react-navigation/stack'
 
-import Login from "../../screens/User/Login";
-import Register from "../../screens/User/Register";
+import AuthScreen from "../../screens/AuthUI/AuthScreen";
 import UserProfile from "../../screens/User/UserProfile";
 import AuthGlobal from "../Context/Store/AuthGlobal";
 // import MyOrders from "../../screens/User/MyOrders";
@@ -27,15 +26,7 @@ const UserNavigator = (props) => {
         >
             <Stack.Screen
                 name="Login"
-                component={Login}
-                options={{
-                    headerShown: false
-                }}
-            />
-
-            <Stack.Screen
-                name="Register"
-                component={Register}
+                component={AuthScreen}
                 options={{
                     headerShown: false
                 }}

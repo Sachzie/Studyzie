@@ -2,10 +2,10 @@ import React, { useState, useContext } from "react";
 import { Image, View, StyleSheet, Text, ScrollView, TouchableOpacity, Dimensions } from "react-native";
 import { Surface } from "react-native-paper";
 import { useDispatch, useSelector } from 'react-redux';
-import { addToCart } from "../../Redux/Actions/cartActions";
+import { addToCart } from "../../backend/Redux/Actions/cartActions";
 import Toast from "react-native-toast-message";
 import { Ionicons } from "@expo/vector-icons";
-import AuthGlobal from "../../Context/Store/AuthGlobal";
+import AuthGlobal from "../../backend/Context/Store/AuthGlobal";
 import { useNavigation } from "@react-navigation/native";
 
 const { width } = Dimensions.get("window");

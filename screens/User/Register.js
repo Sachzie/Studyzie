@@ -5,7 +5,7 @@ import { useNavigation } from "@react-navigation/native";
 import Toast from "react-native-toast-message";
 import * as ImagePicker from "expo-image-picker";
 import axios from "axios";
-import baseURL from "../../assets/common/baseurl";
+import baseURL from "../assets/common/baseurl";
 import { Ionicons } from "@expo/vector-icons";
 
 const Register = () => {

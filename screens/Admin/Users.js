@@ -14,7 +14,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native"
 import { Searchbar } from 'react-native-paper';
 import axios from "axios"
-import baseURL from "../../assets/common/baseurl";
+import baseURL from "../assets/common/baseurl";
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import Toast from "react-native-toast-message"
 

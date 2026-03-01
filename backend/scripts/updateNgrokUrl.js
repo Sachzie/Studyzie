@@ -6,7 +6,7 @@ const readline = require('readline');
 
 const NGROK_API_URL = 'http://127.0.0.1:4040/api/tunnels';
 const BASEURL_FILE_PATH = path.join(__dirname, '..', '..', 'screens', 'assets', 'common', 'baseurl.js');
-const BACKEND_PORT = 3000; // Default backend port
+const BACKEND_PORT = 5000; // Default backend port
 
 function getNgrokPublicUrl() {
     return new Promise((resolve, reject) => {

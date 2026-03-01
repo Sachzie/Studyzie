@@ -1,5 +1,5 @@
 import axios from "axios";
-import baseURL from "../../assets/common/baseurl";
+import baseURL from "../../../screens/assets/common/baseurl";
 import { SET_CART } from "../../Redux/constants"; // We need to add this constant first
 
 export const fetchCart = async (userId, dispatch) => {

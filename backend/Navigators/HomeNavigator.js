@@ -1,8 +1,8 @@
 import React from 'react'
 import { createStackNavigator } from "@react-navigation/stack"
 // import { Stack } from 'expo-router';
-import ProductContainer from '../screens/Product/ProductContainer';
-import SingleProduct from '../screens/Product/SingleProduct';
+import ProductContainer from '../../screens/Product/ProductContainer';
+import SingleProduct from '../../screens/Product/SingleProduct';
 
 const Stack = createStackNavigator()
 function MyStack() {

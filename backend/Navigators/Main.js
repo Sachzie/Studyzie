@@ -6,7 +6,7 @@ import HomeNavigator from "./HomeNavigator";
 import CartNavigator from "./CartNavigator";
 import UserNavigator from "./UserNavigator";
 import AdminNavigator from "./AdminNavigator";
-import MyOrders from "../screens/User/MyOrders";
+import MyOrders from "../../screens/User/MyOrders";
 import { Ionicons } from "@expo/vector-icons";
 import CartIcon from "../../screens/Shared/CartIcon";
 import AuthGlobal from "../Context/Store/AuthGlobal";

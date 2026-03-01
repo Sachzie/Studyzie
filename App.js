@@ -1,12 +1,11 @@
 import { StatusBar } from 'expo-status-bar';
-import Header from './Shared/Header';
 import { NavigationContainer } from '@react-navigation/native'
 import { Provider } from 'react-redux';
-import store from './Redux/store';
+import store from './backend/Redux/store';
 import Toast from 'react-native-toast-message';
-import Auth from './Context/Store/Auth';
-import DrawerNavigator from './Navigators/DrawerNavigator';
-import CartSync from './Context/Store/CartSync';
+import Auth from './backend/Context/Store/Auth';
+import DrawerNavigator from './backend/Navigators/DrawerNavigator';
+import CartSync from './backend/Context/Store/CartSync';
 
 export default function App() {
   return (
@@ -15,7 +14,6 @@ export default function App() {
         <CartSync />
         <NavigationContainer>
           <StatusBar style="dark" />
-          <Header />
           <DrawerNavigator />
           <Toast />
         </NavigationContainer>

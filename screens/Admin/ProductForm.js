@@ -16,8 +16,8 @@ import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view
 
 import Toast from "react-native-toast-message"
 import AsyncStorage from '@react-native-async-storage/async-storage'
-import baseURL from "../../assets/common/baseurl"
-import Error from "../../Shared/Error"
+import baseURL from "../assets/common/baseurl"
+import Error from "../Shared/Error"
 import axios from "axios"
 import * as ImagePicker from "expo-image-picker"
 import { useNavigation } from "@react-navigation/native"

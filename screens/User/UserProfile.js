@@ -3,9 +3,9 @@ import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
-import baseURL from "../../assets/common/baseurl";
-import AuthGlobal from "../../Context/Store/AuthGlobal";
-import { logoutUser } from "../../Context/Actions/Auth.actions";
+import baseURL from "../assets/common/baseurl";
+import AuthGlobal from "../../backend/Context/Store/AuthGlobal";
+import { logoutUser } from "../../backend/Context/Actions/Auth.actions";
 import { Ionicons } from "@expo/vector-icons";
 
 import * as ImagePicker from "expo-image-picker";

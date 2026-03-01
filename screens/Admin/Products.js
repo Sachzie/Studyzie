@@ -16,7 +16,7 @@ import { Searchbar } from 'react-native-paper';
 import { SwipeListView } from 'react-native-swipe-list-view';
 
 import axios from "axios"
-import baseURL from "../../assets/common/baseurl";
+import baseURL from "../assets/common/baseurl";
 import AsyncStorage from '@react-native-async-storage/async-storage'
 
 import { useNavigation } from "@react-navigation/native"
