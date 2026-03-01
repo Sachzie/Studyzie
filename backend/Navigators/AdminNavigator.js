@@ -1,12 +1,12 @@
 import React from "react"
 import { createStackNavigator } from "@react-navigation/stack"
 
-import Orders from "../Screeens/Admin/Orders";
-import Products from "../Screeens/Admin/Products";
-import ProductForm from "../Screeens/Admin/ProductForm";
-import Categories from "../Screeens/Admin/Categories";
-import Dashboard from "../Screeens/Admin/Dashboard";
-import Users from "../Screeens/Admin/Users";
+import Orders from "../screens/Admin/Orders";
+import Products from "../screens/Admin/Products";
+import ProductForm from "../screens/Admin/ProductForm";
+import Categories from "../screens/Admin/Categories";
+import Dashboard from "../screens/Admin/Dashboard";
+import Users from "../screens/Admin/Users";
 
 const Stack = createStackNavigator();
 

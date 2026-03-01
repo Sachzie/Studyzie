@@ -1,11 +1,11 @@
 import React, { useContext } from "react";
 import { createStackNavigator } from '@react-navigation/stack'
 
-import Login from "../../Screeens/User/Login";
-import Register from "../../Screeens/User/Register";
-import UserProfile from "../../Screeens/User/UserProfile";
+import Login from "../../screens/User/Login";
+import Register from "../../screens/User/Register";
+import UserProfile from "../../screens/User/UserProfile";
 import AuthGlobal from "../Context/Store/AuthGlobal";
-// import MyOrders from "../Screens/User/MyOrders";
+// import MyOrders from "../../screens/User/MyOrders";
 const Stack = createStackNavigator();
 
 const UserNavigator = (props) => {

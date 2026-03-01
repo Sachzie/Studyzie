@@ -7,8 +7,8 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "update-ngrok-url": "node scripts/updateNgrokUrl.js",
-    "watch-ngrok-url": "node scripts/updateNgrokUrl.js --watch"
+    "update-ngrok-url": "node backend/scripts/updateNgrokUrl.js",
+    "watch-ngrok-url": "node backend/scripts/updateNgrokUrl.js --watch"
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "^2.2.0",

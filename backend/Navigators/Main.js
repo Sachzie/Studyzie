@@ -6,9 +6,9 @@ import HomeNavigator from "./HomeNavigator";
 import CartNavigator from "./CartNavigator";
 import UserNavigator from "./UserNavigator";
 import AdminNavigator from "./AdminNavigator";
-import MyOrders from "../Screeens/User/MyOrders";
+import MyOrders from "../screens/User/MyOrders";
 import { Ionicons } from "@expo/vector-icons";
-import CartIcon from "../Shared/CartIcon";
+import CartIcon from "../../screens/Shared/CartIcon";
 import AuthGlobal from "../Context/Store/AuthGlobal";
 const Tab = createBottomTabNavigator();
 
