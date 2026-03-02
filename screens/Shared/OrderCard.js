@@ -9,6 +9,7 @@ import { useNavigation } from '@react-navigation/native'
 import Toast from "react-native-toast-message";
 
 const codes = [
+  { name: "Cancelled", code: "0" },
   { name: "Pending", code: "3" },
   { name: "Shipped", code: "2" },
   { name: "Delivered", code: "1" },
@@ -60,12 +61,14 @@ const OrderCard = ({ item, update }) => {
   };
 
   const getStatusColor = (status) => {
+    if (status === "0" || status === "4" || status === "-1") return "#DC2626";
     if (status === "3") return "#6B7280";
     if (status === "2") return "#3B82F6"; // Shipped - Blue
     return "#10B981"; // Delivered - Green
   };
 
   const getStatusText = (status) => {
+    if (status === "0" || status === "4" || status === "-1") return "Cancelled";
     if (status === "3") return "Pending";
     if (status === "2") return "Shipped";
     return "Delivered";

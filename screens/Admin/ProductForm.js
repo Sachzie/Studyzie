@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react"
+import React, { useEffect, useMemo, useState } from "react";
 import {
     View,
     Text,
@@ -8,128 +8,208 @@ import {
     Platform,
     TextInput,
     StatusBar,
-    ScrollView
-} from "react-native"
-import { Picker } from "@react-native-picker/picker"
+} from "react-native";
+import { Picker } from "@react-native-picker/picker";
 import { Ionicons } from "@expo/vector-icons";
-import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
-
-import Toast from "react-native-toast-message"
-import AsyncStorage from '@react-native-async-storage/async-storage'
-import baseURL from "../assets/common/baseurl"
-import Error from "../Shared/Error"
-import axios from "axios"
-import * as ImagePicker from "expo-image-picker"
-import { useNavigation } from "@react-navigation/native"
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
+import Toast from "react-native-toast-message";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import axios from "axios";
+import * as ImagePicker from "expo-image-picker";
+import { useNavigation } from "@react-navigation/native";
 import mime from "mime";
+import a4Img from "../Picures/a4.jpg";
+import ballpenImg from "../Picures/ballpen.jpg";
+import notebookImg from "../Picures/notebook.jpg";
+import pencilImg from "../Picures/pencil.jpg";
+import yellowpadImg from "../Picures/yellowpad.jpg";
+import oilpastelImg from "../Picures/oilpastel.png";
+
+import baseURL from "../assets/common/baseurl";
+import Error from "../Shared/Error";
+
+const PLACEHOLDER_IMAGE = "https://dummyimage.com/300x300/e5e7eb/6b7280&text=Pick+Image";
+const API_ORIGIN = baseURL.replace(/api\/v1\/?$/, "");
+const IMAGE_SOURCE_BY_KEY = {
+    a4: a4Img,
+    ballpen: ballpenImg,
+    notebook: notebookImg,
+    pencil: pencilImg,
+    yellowpad: yellowpadImg,
+    oilpastel: oilpastelImg,
+};
+
+const normalizeImageKey = (value) =>
+    (value || "")
+        .toString()
+        .trim()
+        .toLowerCase()
+        .replace(/\s+/g, "")
+        .replace(/[^a-z0-9]/g, "");
+
+const getImageKeyFromName = (name) => {
+    const normalized = normalizeImageKey(name);
+    if (normalized.includes("oilpastel")) return "oilpastel";
+    if (normalized.includes("yellowpad")) return "yellowpad";
+    if (normalized.includes("ballpen")) return "ballpen";
+    if (normalized.includes("notebook")) return "notebook";
+    if (normalized.includes("pencil")) return "pencil";
+    if (normalized.includes("a4")) return "a4";
+    return "";
+};
+
+const resolveImageUri = (rawUri) => {
+    if (!rawUri) return "";
+    if (rawUri.startsWith("data:image")) return rawUri;
+
+    if (/^https?:\/\//i.test(rawUri)) {
+        try {
+            const url = new URL(rawUri);
+            if (url.hostname === "localhost" || url.hostname === "127.0.0.1") {
+                return `${API_ORIGIN}${url.pathname}`;
+            }
+            return rawUri;
+        } catch (e) {
+            return rawUri;
+        }
+    }
+
+    if (rawUri.startsWith("/")) {
+        return `${API_ORIGIN}${rawUri}`;
+    }
+
+    return `${API_ORIGIN}/public/uploads/${rawUri}`;
+};
 
 const ProductForm = (props) => {
-    
-    const [pickerValue, setPickerValue] = useState('');
-    const [brand, setBrand] = useState('');
-    const [name, setName] = useState('');
-    const [price, setPrice] = useState('');
-    const [description, setDescription] = useState('');
-    const [image, setImage] = useState('');
-    const [mainImage, setMainImage] = useState();
-    const [category, setCategory] = useState('');
+    const [pickerValue, setPickerValue] = useState("");
+    const [brand, setBrand] = useState("");
+    const [name, setName] = useState("");
+    const [price, setPrice] = useState("");
+    const [description, setDescription] = useState("");
+    const [image, setImage] = useState("");
+    const [mainImage, setMainImage] = useState("");
+    const [category, setCategory] = useState("");
     const [categories, setCategories] = useState([]);
-    const [token, setToken] = useState();
-    const [error, setError] = useState();
-    const [countInStock, setCountInStock] = useState('');
-    const [richDescription, setRichDescription] = useState();
-    const [numReviews, setNumReviews] = useState(0);
+    const [token, setToken] = useState("");
+    const [error, setError] = useState("");
+    const [countInStock, setCountInStock] = useState("");
     const [item, setItem] = useState(null);
-    const [dark, setDark] = useState(true); // Default to dark mode for admin
+    const [imageError, setImageError] = useState(false);
 
-    let navigation = useNavigation()
+    const navigation = useNavigation();
+    const previewImage = resolveImageUri(mainImage || "");
+    const fallbackPreviewSource = useMemo(() => {
+        const key = normalizeImageKey(item?.imageKey) || getImageKeyFromName(item?.name);
+        return IMAGE_SOURCE_BY_KEY[key] || null;
+    }, [item?.imageKey, item?.name]);
 
     useEffect(() => {
-        if (!props.route.params) {
-            setItem(null);
-        } else {
-            setItem(props.route.params.item);
-            setBrand(props.route.params.item.brand);
-            setName(props.route.params.item.name);
-            setPrice(props.route.params.item.price.toString());
-            setDescription(props.route.params.item.description);
-            setMainImage(props.route.params.item.image);
-            setImage(props.route.params.item.image);
-            setCategory(props.route.params.item.category._id);
-            setPickerValue(props.route.params.item.category._id);
-            setCountInStock(props.route.params.item.countInStock.toString());
+        const routeItem = props?.route?.params?.item;
+
+        if (routeItem) {
+            setItem(routeItem);
+            setBrand(routeItem.brand || "");
+            setName(routeItem.name || "");
+            setPrice(routeItem.price?.toString?.() || "");
+            setDescription(routeItem.description || "");
+            setMainImage(routeItem.image || "");
+            setImage(routeItem.image || "");
+            const currentCategoryId =
+                typeof routeItem?.category === "object"
+                    ? routeItem?.category?._id || routeItem?.category?.id || ""
+                    : routeItem?.category || "";
+            setCategory(currentCategoryId);
+            setPickerValue(currentCategoryId);
+            setCountInStock(routeItem.countInStock?.toString?.() || "");
         }
+
         AsyncStorage.getItem("jwt")
-            .then((res) => {
-                setToken(res)
-            })
-            .catch((error) => console.log(error))
+            .then((res) => setToken(res || ""))
+            .catch(() => setToken(""));
+
         axios
             .get(`${baseURL}categories`)
-            .then((res) => setCategories(res.data))
-            .catch((error) => alert("Error to load categories"));
-        
-        // Request permissions
+            .then((res) => setCategories(res.data || []))
+            .catch(() => {
+                Toast.show({
+                    topOffset: 60,
+                    type: "error",
+                    text1: "Could not load categories",
+                });
+            });
+
         (async () => {
             if (Platform.OS !== "web") {
                 const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
                 if (status !== "granted") {
-                    alert("Sorry, we need camera roll permissions to make this work!")
+                    Toast.show({
+                        topOffset: 60,
+                        type: "error",
+                        text1: "Permission required",
+                        text2: "Please allow media access to upload images.",
+                    });
                 }
             }
         })();
 
         return () => {
-            setCategories([])
-        }
-    }, [])
+            setCategories([]);
+        };
+    }, [props?.route?.params?.item]);
 
     const pickImage = async () => {
-        let result = await ImagePicker.launchImageLibraryAsync({
+        const result = await ImagePicker.launchImageLibraryAsync({
             mediaTypes: ImagePicker.MediaTypeOptions.Images,
             allowsEditing: true,
             aspect: [4, 3],
-            quality: 1
+            quality: 0.8,
         });
 
         if (!result.canceled) {
-            setMainImage(result.assets[0].uri);
-            setImage(result.assets[0].uri);
+            const uri = result.assets?.[0]?.uri;
+            if (uri) {
+                setMainImage(uri);
+                setImage(uri);
+                setImageError(false);
+            }
         }
-    }
+    };
 
-    const addProduct = () => {
-        if (
-            name == "" ||
-            brand == "" ||
-            price == "" ||
-            description == "" ||
-            category == "" ||
-            countInStock == ""
-        ) {
-            setError("Please fill in the form correctly")
+    const saveProduct = async () => {
+        setError("");
+
+        if (!name || !brand || !price || !description || !category || !countInStock) {
+            setError("Please fill in all fields.");
             return;
         }
 
-        let formData = new FormData();
+        if (!item && !image) {
+            setError("Please select an image for the product.");
+            return;
+        }
 
-        const newImageUri = "file:///" + image.split("file:/").join("");
+        const formData = new FormData();
+        const newImageUri =
+            image && image.startsWith("file:")
+                ? "file:///" + image.split("file:/").join("")
+                : null;
 
-        if (image && image !== item?.image) {
-             formData.append("image", {
+        if (newImageUri && image !== item?.image) {
+            formData.append("image", {
                 uri: newImageUri,
-                type: mime.getType(newImageUri),
-                name: newImageUri.split("/").pop()
+                type: mime.getType(newImageUri) || "image/jpeg",
+                name: newImageUri.split("/").pop(),
             });
         }
-       
-        formData.append("name", name);
-        formData.append("brand", brand);
+
+        formData.append("name", name.trim());
+        formData.append("brand", brand.trim());
         formData.append("price", price);
-        formData.append("description", description);
+        formData.append("description", description.trim());
         formData.append("category", category);
         formData.append("countInStock", countInStock);
-        formData.append("richDescription", richDescription || description); // Default rich desc
+        formData.append("richDescription", description.trim());
         formData.append("rating", 0);
         formData.append("numReviews", 0);
         formData.append("isFeatured", false);
@@ -137,320 +217,304 @@ const ProductForm = (props) => {
         const config = {
             headers: {
                 "Content-Type": "multipart/form-data",
-                Authorization: `Bearer ${token}`
-            }
-        }
+                Authorization: `Bearer ${token}`,
+            },
+        };
 
-        if (item !== null) {
-            axios
-                .put(`${baseURL}products/${item.id}`, formData, config)
-                .then((res) => {
-                    if (res.status == 200 || res.status == 201) {
-                        Toast.show({
-                            topOffset: 60,
-                            type: "success",
-                            text1: "Product successfuly updated",
-                            text2: ""
-                        });
-                        setTimeout(() => {
-                            navigation.navigate("Products");
-                        }, 500)
-                    }
-                })
-                .catch((error) => {
-                    console.log(error)
-                    Toast.show({
-                        topOffset: 60,
-                        type: "error",
-                        text1: "Something went wrong",
-                        text2: "Please try again"
-                    });
-                })
-        } else {
-            axios
-                .post(`${baseURL}products`, formData, config)
-                .then((res) => {
-                    if (res.status == 200 || res.status == 201) {
-                        Toast.show({
-                            topOffset: 60,
-                            type: "success",
-                            text1: "New Product added",
-                            text2: ""
-                        });
-                        setTimeout(() => {
-                            navigation.navigate("Products");
-                        }, 500)
-                    }
-                })
-                .catch((error) => {
-                    console.log(error)
-                    Toast.show({
-                        topOffset: 60,
-                        type: "error",
-                        text1: "Something went wrong",
-                        text2: "Please try again"
-                    });
-                })
+        try {
+            if (item) {
+                await axios.put(`${baseURL}products/${item.id}`, formData, config);
+                Toast.show({
+                    topOffset: 60,
+                    type: "success",
+                    text1: "Product updated",
+                });
+            } else {
+                await axios.post(`${baseURL}products`, formData, config);
+                Toast.show({
+                    topOffset: 60,
+                    type: "success",
+                    text1: "Product created",
+                });
+            }
+
+            setTimeout(() => {
+                navigation.goBack();
+            }, 350);
+        } catch (e) {
+            Toast.show({
+                topOffset: 60,
+                type: "error",
+                text1: "Save failed",
+                text2: "Please check your input and try again.",
+            });
         }
-    }
+    };
 
     return (
-        <View style={[styles.container, dark ? styles.bgDark : styles.bgLight]}>
-             <StatusBar barStyle={dark ? "light-content" : "dark-content"} />
-             
-             <View style={styles.header}>
-                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-                    <Ionicons name="arrow-back" size={24} color={dark ? "white" : "black"} />
-                </TouchableOpacity>
-                <Text style={[styles.headerTitle, dark ? styles.textWhite : styles.textDark]}>
-                    {item ? "Edit Product" : "Add Product"}
+        <View style={styles.container}>
+            <StatusBar barStyle="dark-content" />
+
+            <View style={styles.header}>
+                <View style={styles.headerRow}>
+                    <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+                        <Ionicons name="chevron-back-outline" size={22} color="#111827" />
+                    </TouchableOpacity>
+                    <Text style={styles.headerTitle}>
+                        {item ? "Manage Product" : "Create Product"}
+                    </Text>
+                </View>
+                <Text style={styles.headerSubtitle}>
+                    {item ? "Update product details" : "Add a new product to your catalog"}
                 </Text>
-             </View>
+            </View>
 
             <KeyboardAwareScrollView
-                viewIsInsideTabBar={true}
-                extraHeight={200}
-                enableOnAndroid={true}
+                viewIsInsideTabBar
+                extraHeight={160}
+                enableOnAndroid
                 contentContainerStyle={styles.scrollContent}
+                showsVerticalScrollIndicator={false}
             >
-                <View style={styles.imageContainer}>
-                    <Image 
-                        style={styles.image} 
-                        source={{ uri: mainImage }} 
-                        resizeMode="contain"
-                    />
-                    <TouchableOpacity onPress={pickImage} style={styles.imagePicker}>
-                        <Ionicons name="camera" color="white" size={24} />
+                <View style={styles.formCard}>
+                    <View style={styles.imageContainer}>
+                        <Image
+                            style={styles.image}
+                            source={
+                                imageError || !previewImage
+                                    ? (fallbackPreviewSource || { uri: PLACEHOLDER_IMAGE })
+                                    : { uri: previewImage }
+                            }
+                            resizeMode="cover"
+                            onError={() => setImageError(true)}
+                        />
+                        <TouchableOpacity onPress={pickImage} style={styles.imagePicker}>
+                            <Ionicons name="camera-outline" color="#FFFFFF" size={18} />
+                        </TouchableOpacity>
+                    </View>
+
+                    <View style={styles.formGroup}>
+                        <Text style={styles.label}>Brand</Text>
+                        <TextInput
+                            style={styles.input}
+                            placeholder="Brand"
+                            placeholderTextColor="#9CA3AF"
+                            value={brand}
+                            onChangeText={setBrand}
+                        />
+                    </View>
+
+                    <View style={styles.formGroup}>
+                        <Text style={styles.label}>Name</Text>
+                        <TextInput
+                            style={styles.input}
+                            placeholder="Name"
+                            placeholderTextColor="#9CA3AF"
+                            value={name}
+                            onChangeText={setName}
+                        />
+                    </View>
+
+                    <View style={styles.row}>
+                        <View style={[styles.formGroup, styles.half, styles.halfLeft]}>
+                            <Text style={styles.label}>Price (₱)</Text>
+                            <TextInput
+                                style={styles.input}
+                                placeholder="Price"
+                                placeholderTextColor="#9CA3AF"
+                                value={price}
+                                keyboardType="numeric"
+                                onChangeText={setPrice}
+                            />
+                        </View>
+                        <View style={[styles.formGroup, styles.half]}>
+                            <Text style={styles.label}>Count in Stock</Text>
+                            <TextInput
+                                style={styles.input}
+                                placeholder="Stock"
+                                placeholderTextColor="#9CA3AF"
+                                value={countInStock}
+                                keyboardType="numeric"
+                                onChangeText={setCountInStock}
+                            />
+                        </View>
+                    </View>
+
+                    <View style={styles.formGroup}>
+                        <Text style={styles.label}>Description</Text>
+                        <TextInput
+                            style={[styles.input, styles.textArea]}
+                            placeholder="Description"
+                            placeholderTextColor="#9CA3AF"
+                            value={description}
+                            onChangeText={setDescription}
+                            multiline
+                        />
+                    </View>
+
+                    <View style={styles.formGroup}>
+                        <Text style={styles.label}>Category</Text>
+                        <View style={styles.pickerContainer}>
+                            <Picker
+                                mode="dropdown"
+                                selectedValue={pickerValue}
+                                style={styles.picker}
+                                dropdownIconColor="#111827"
+                                onValueChange={(value) => {
+                                    setPickerValue(value);
+                                    setCategory(value);
+                                }}
+                            >
+                                <Picker.Item label="Select category" value="" />
+                                {categories.map((c) => (
+                                    <Picker.Item key={c.id} label={c.name} value={c.id} />
+                                ))}
+                            </Picker>
+                        </View>
+                    </View>
+
+                    {error ? <Error message={error} /> : null}
+
+                    <TouchableOpacity style={styles.confirmButton} onPress={saveProduct}>
+                        <Text style={styles.confirmButtonText}>{item ? "Save Changes" : "Create Product"}</Text>
                     </TouchableOpacity>
                 </View>
-
-                <View style={styles.formGroup}>
-                    <Text style={[styles.label, dark ? styles.textGray : styles.textGrayLight]}>Brand</Text>
-                    <TextInput 
-                        style={[styles.input, dark ? styles.inputDark : styles.inputLight]}
-                        placeholder="Brand"
-                        placeholderTextColor={dark ? "#6B7280" : "#9CA3AF"}
-                        name="brand"
-                        id="brand"
-                        value={brand}
-                        onChangeText={(text) => setBrand(text)}
-                    />
-                </View>
-
-                <View style={styles.formGroup}>
-                    <Text style={[styles.label, dark ? styles.textGray : styles.textGrayLight]}>Name</Text>
-                    <TextInput 
-                        style={[styles.input, dark ? styles.inputDark : styles.inputLight]}
-                        placeholder="Name"
-                        placeholderTextColor={dark ? "#6B7280" : "#9CA3AF"}
-                        name="name"
-                        id="name"
-                        value={name}
-                        onChangeText={(text) => setName(text)}
-                    />
-                </View>
-
-                <View style={styles.row}>
-                    <View style={[styles.formGroup, {flex: 1, marginRight: 10}]}>
-                        <Text style={[styles.label, dark ? styles.textGray : styles.textGrayLight]}>Price</Text>
-                        <TextInput 
-                            style={[styles.input, dark ? styles.inputDark : styles.inputLight]}
-                            placeholder="Price"
-                            placeholderTextColor={dark ? "#6B7280" : "#9CA3AF"}
-                            name="price"
-                            id="price"
-                            value={price}
-                            keyboardType={"numeric"}
-                            onChangeText={(text) => setPrice(text)}
-                        />
-                    </View>
-                    <View style={[styles.formGroup, {flex: 1}]}>
-                         <Text style={[styles.label, dark ? styles.textGray : styles.textGrayLight]}>Count in Stock</Text>
-                        <TextInput 
-                            style={[styles.input, dark ? styles.inputDark : styles.inputLight]}
-                            placeholder="Stock"
-                            placeholderTextColor={dark ? "#6B7280" : "#9CA3AF"}
-                            name="stock"
-                            id="stock"
-                            value={countInStock}
-                            keyboardType={"numeric"}
-                            onChangeText={(text) => setCountInStock(text)}
-                        />
-                    </View>
-                </View>
-
-                <View style={styles.formGroup}>
-                    <Text style={[styles.label, dark ? styles.textGray : styles.textGrayLight]}>Description</Text>
-                    <TextInput 
-                        style={[styles.input, styles.textArea, dark ? styles.inputDark : styles.inputLight]}
-                        placeholder="Description"
-                        placeholderTextColor={dark ? "#6B7280" : "#9CA3AF"}
-                        name="description"
-                        id="description"
-                        value={description}
-                        onChangeText={(text) => setDescription(text)}
-                        multiline={true}
-                    />
-                </View>
-
-                <View style={styles.formGroup}>
-                    <Text style={[styles.label, dark ? styles.textGray : styles.textGrayLight]}>Category</Text>
-                    <View style={[styles.pickerContainer, dark ? styles.inputDark : styles.inputLight]}>
-                        <Picker
-                            mode="dropdown"
-                            selectedValue={pickerValue}
-                            style={{ color: dark ? "white" : "black" }}
-                            dropdownIconColor={dark ? "white" : "black"}
-                            onValueChange={(e) => {
-                                setPickerValue(e);
-                                setCategory(e);
-                            }}
-                        >
-                            {categories.map((c) => {
-                                return <Picker.Item key={c.id} label={c.name} value={c.id} />
-                            })}
-                        </Picker>
-                    </View>
-                </View>
-
-                {error ? <Error message={error} /> : null}
-
-                <TouchableOpacity 
-                    style={[styles.confirmButton, {backgroundColor: '#10B981'}]} 
-                    onPress={() => addProduct()}
-                >
-                    <Text style={styles.confirmButtonText}>Confirm</Text>
-                </TouchableOpacity>
-
             </KeyboardAwareScrollView>
         </View>
     );
-}
+};
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-    },
-    bgDark: {
-        backgroundColor: "#111827",
-    },
-    bgLight: {
         backgroundColor: "#F3F4F6",
     },
     header: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        padding: 20,
-        paddingTop: 50,
+        paddingHorizontal: 16,
+        paddingTop: 52,
+        paddingBottom: 10,
+    },
+    headerRow: {
+        flexDirection: "row",
+        alignItems: "center",
     },
     backButton: {
-        marginRight: 15,
+        width: 34,
+        height: 34,
+        borderRadius: 17,
+        marginRight: 6,
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: "#FFFFFF",
+        borderWidth: 1,
+        borderColor: "#E5E7EB",
     },
     headerTitle: {
-        fontSize: 24,
-        fontWeight: "bold",
+        color: "#111827",
+        fontSize: 28,
+        fontWeight: "700",
+    },
+    headerSubtitle: {
+        marginTop: 2,
+        color: "#6B7280",
+        fontSize: 13,
     },
     scrollContent: {
-        padding: 20,
-        paddingBottom: 100,
+        paddingHorizontal: 16,
+        paddingBottom: 26,
+    },
+    formCard: {
+        backgroundColor: "#FFFFFF",
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: "#E5E7EB",
+        padding: 14,
     },
     imageContainer: {
-        width: 150,
-        height: 150,
-        borderRadius: 75,
+        width: 140,
+        height: 140,
+        borderRadius: 14,
         borderWidth: 1,
-        borderColor: '#E5E7EB',
-        alignSelf: 'center',
-        marginBottom: 20,
-        justifyContent: 'center',
-        alignItems: 'center',
-        backgroundColor: '#E5E7EB',
-        position: 'relative',
-        overflow: 'hidden'
+        borderColor: "#E5E7EB",
+        alignSelf: "center",
+        marginBottom: 16,
+        justifyContent: "center",
+        alignItems: "center",
+        backgroundColor: "#F3F4F6",
+        position: "relative",
+        overflow: "hidden",
     },
     image: {
-        width: '100%',
-        height: '100%',
+        width: "100%",
+        height: "100%",
     },
     imagePicker: {
-        position: 'absolute',
-        bottom: 0,
-        right: 0,
-        backgroundColor: '#10B981',
-        padding: 8,
-        borderRadius: 20,
-        zIndex: 10,
-        width: 150,
-        alignItems: 'center',
-        opacity: 0.7
+        position: "absolute",
+        bottom: 8,
+        right: 8,
+        backgroundColor: "#111827",
+        width: 34,
+        height: 34,
+        borderRadius: 17,
+        alignItems: "center",
+        justifyContent: "center",
     },
     formGroup: {
-        marginBottom: 15,
+        marginBottom: 12,
     },
     row: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
+        flexDirection: "row",
+        justifyContent: "space-between",
+    },
+    half: {
+        flex: 1,
+    },
+    halfLeft: {
+        marginRight: 10,
     },
     label: {
-        fontSize: 14,
+        fontSize: 13,
         marginBottom: 5,
-        fontWeight: '600',
+        fontWeight: "600",
+        color: "#374151",
     },
     input: {
-        height: 50,
+        height: 46,
         borderRadius: 10,
-        paddingHorizontal: 15,
+        paddingHorizontal: 12,
         borderWidth: 1,
-        borderColor: 'transparent',
-    },
-    inputDark: {
-        backgroundColor: "#1F2937",
-        color: "white",
-    },
-    inputLight: {
-        backgroundColor: "white",
+        borderColor: "#E5E7EB",
+        backgroundColor: "#FFFFFF",
         color: "#111827",
-        borderWidth: 1,
-        borderColor: "#E5E7EB"
+        fontSize: 14,
     },
     textArea: {
-        height: 100,
-        paddingTop: 15,
-        textAlignVertical: 'top'
+        height: 96,
+        paddingTop: 12,
+        textAlignVertical: "top",
     },
     pickerContainer: {
         borderRadius: 10,
-        overflow: 'hidden',
+        borderWidth: 1,
+        borderColor: "#E5E7EB",
+        overflow: "hidden",
     },
-    confirmButton: {
-        height: 50,
-        borderRadius: 10,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginTop: 20,
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.25,
-        shadowRadius: 3.84,
-        elevation: 5,
-    },
-    confirmButtonText: {
-        color: 'white',
-        fontSize: 18,
-        fontWeight: 'bold',
-    },
-    textWhite: {
-        color: "white",
-    },
-    textDark: {
+    picker: {
         color: "#111827",
     },
-    textGray: {
-        color: "#9CA3AF",
+    confirmButton: {
+        height: 48,
+        borderRadius: 12,
+        justifyContent: "center",
+        alignItems: "center",
+        marginTop: 8,
+        backgroundColor: "#111827",
     },
-    textGrayLight: {
-        color: "#4B5563",
-    }
+    confirmButtonText: {
+        color: "#FFFFFF",
+        fontSize: 15,
+        fontWeight: "700",
+    },
 });
 
 export default ProductForm;

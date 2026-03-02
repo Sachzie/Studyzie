@@ -4,6 +4,8 @@
   "main": "index.js",
   "scripts": {
     "start": "npm run update-ngrok-url && expo start",
+    "backend": "cd backend && npm run dev",
+    "dev": "concurrently \"npm run backend\" \"npm start\"",
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
@@ -23,7 +25,7 @@
     "expo": "~54.0.32",
     "expo-camera": "~17.0.10",
     "expo-image-picker": "~17.0.10",
-    "expo-linear-gradient": "^55.0.8",
+    "expo-linear-gradient": "~15.0.8",
     "expo-location": "~19.0.8",
     "expo-status-bar": "~3.0.9",
     "jwt-decode": "^4.0.0",
@@ -46,5 +48,8 @@
     "redux-thunk": "^3.1.0",
     "styled-components": "^6.3.8"
   },
-  "private": true
+  "private": true,
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
 }

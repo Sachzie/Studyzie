@@ -1,177 +1,202 @@
-import React, { useState, useCallback } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import {
     View,
     Text,
     FlatList,
     ActivityIndicator,
     StyleSheet,
-    Dimensions,
     TouchableOpacity,
     StatusBar,
-    Image
+    Image,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useFocusEffect } from "@react-navigation/native"
-import { Searchbar } from 'react-native-paper';
-import axios from "axios"
+import { useFocusEffect } from "@react-navigation/native";
+import { Searchbar } from "react-native-paper";
+import axios from "axios";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import Toast from "react-native-toast-message";
+
 import baseURL from "../assets/common/baseurl";
-import AsyncStorage from '@react-native-async-storage/async-storage'
-import Toast from "react-native-toast-message"
 
-var { height, width } = Dimensions.get("window")
+const FALLBACK_AVATAR = "https://cdn-icons-png.flaticon.com/512/149/149071.png";
 
-const Users = (props) => {
+const normalizeImageUri = (uri) => {
+    if (!uri) return FALLBACK_AVATAR;
+    if (uri.startsWith("http://")) return uri.replace("http://", "https://");
+    return uri;
+};
 
+const Users = ({ navigation }) => {
     const [userList, setUserList] = useState([]);
     const [userFilter, setUserFilter] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [token, setToken] = useState();
     const [refreshing, setRefreshing] = useState(false);
-    const [searchQuery, setSearchQuery] = useState('');
-    const [dark, setDark] = useState(true); // Default to dark mode for admin
+    const [searchQuery, setSearchQuery] = useState("");
+    const [token, setToken] = useState("");
 
-    const searchUser = (text) => {
-        setSearchQuery(text);
-        if (text === "") {
-            setUserFilter(userList)
-        } else {
-            setUserFilter(
-                userList.filter((i) =>
-                    i.name.toLowerCase().includes(text.toLowerCase()) ||
-                    i.email.toLowerCase().includes(text.toLowerCase())
-                )
-            )
-        }
-    }
-
-    const deleteUser = (id) => {
-        axios
-            .delete(`${baseURL}users/${id}`, {
-                headers: { Authorization: `Bearer ${token}` },
-            })
-            .then((res) => {
-                const users = userFilter.filter((item) => item.id !== id)
-                setUserFilter(users)
-                // Also update the main list so search works correctly after delete
-                setUserList(userList.filter((item) => item.id !== id))
-                Toast.show({
-                    topOffset: 60,
-                    type: "success",
-                    text1: "User Deleted",
-                    text2: ""
+    const fetchUsers = useCallback(
+        async (jwt) => {
+            try {
+                const res = await axios.get(`${baseURL}users`, {
+                    headers: { Authorization: `Bearer ${jwt}` },
                 });
-            })
-            .catch((error) => {
-                console.log(error);
+                setUserList(res.data || []);
+                setUserFilter(res.data || []);
+            } catch (error) {
+                setUserList([]);
+                setUserFilter([]);
                 Toast.show({
                     topOffset: 60,
                     type: "error",
-                    text1: "Error",
-                    text2: "Could not delete user"
+                    text1: "Load failed",
+                    text2: "Could not fetch users.",
                 });
-            });
-    }
-
-    const onRefresh = useCallback(() => {
-        setRefreshing(true);
-        setTimeout(() => {
-            axios
-                .get(`${baseURL}users`, {
-                    headers: { Authorization: `Bearer ${token}` }
-                })
-                .then((res) => {
-                    setUserList(res.data);
-                    setUserFilter(res.data);
-                    setLoading(false);
-                    setRefreshing(false);
-                })
-                .catch((error) => {
-                    console.log(error);
-                    setRefreshing(false);
-                })
-        }, 2000);
-    }, [token]);
+            } finally {
+                setLoading(false);
+                setRefreshing(false);
+            }
+        },
+        []
+    );
 
     useFocusEffect(
         useCallback(() => {
-            AsyncStorage.getItem("jwt")
-                .then((res) => {
-                    setToken(res)
-                    axios
-                        .get(`${baseURL}users`, {
-                            headers: { Authorization: `Bearer ${res}` }
-                        })
-                        .then((userRes) => {
-                            setUserList(userRes.data);
-                            setUserFilter(userRes.data);
-                            setLoading(false);
-                        })
-                        .catch((error) => console.log(error))
-                })
-                .catch((error) => console.log(error))
+            let isActive = true;
+
+            const init = async () => {
+                setLoading(true);
+                try {
+                    const jwt = await AsyncStorage.getItem("jwt");
+                    if (!isActive) return;
+                    setToken(jwt || "");
+                    if (jwt) {
+                        fetchUsers(jwt);
+                    } else {
+                        setLoading(false);
+                    }
+                } catch (error) {
+                    if (isActive) {
+                        setToken("");
+                        setLoading(false);
+                    }
+                }
+            };
+
+            init();
 
             return () => {
+                isActive = false;
                 setUserList([]);
                 setUserFilter([]);
-                setLoading(true);
-            }
-        }, [])
-    )
+            };
+        }, [fetchUsers])
+    );
+
+    const searchUser = (text) => {
+        setSearchQuery(text);
+        if (!text.trim()) {
+            setUserFilter(userList);
+            return;
+        }
+
+        setUserFilter(
+            userList.filter((user) => {
+                const byName = user?.name?.toLowerCase().includes(text.toLowerCase());
+                const byEmail = user?.email?.toLowerCase().includes(text.toLowerCase());
+                return byName || byEmail;
+            })
+        );
+    };
+
+    const deleteUser = async (id) => {
+        try {
+            await axios.delete(`${baseURL}users/${id}`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+
+            const updatedList = userList.filter((item) => item.id !== id);
+            setUserList(updatedList);
+            setUserFilter(
+                updatedList.filter((item) => {
+                    if (!searchQuery.trim()) return true;
+                    const q = searchQuery.toLowerCase();
+                    return (
+                        item?.name?.toLowerCase().includes(q) ||
+                        item?.email?.toLowerCase().includes(q)
+                    );
+                })
+            );
+
+            Toast.show({
+                topOffset: 60,
+                type: "success",
+                text1: "User deleted",
+            });
+        } catch (error) {
+            Toast.show({
+                topOffset: 60,
+                type: "error",
+                text1: "Delete failed",
+                text2: "Could not delete user.",
+            });
+        }
+    };
+
+    const totalUsers = useMemo(() => userList.length, [userList.length]);
 
     const renderItem = ({ item }) => (
-        <View style={[styles.item, dark ? styles.itemDark : styles.itemLight]}>
-            <View style={styles.itemLeft}>
-                <Image 
-                    source={{ uri: item.image ? item.image : "https://cdn-icons-png.flaticon.com/512/149/149071.png" }}
-                    style={styles.avatar}
-                />
-                <View>
-                    <Text style={[styles.itemName, dark ? styles.textWhite : styles.textDark]}>{item.name}</Text>
-                    <Text style={[styles.itemEmail, dark ? styles.textGray : styles.textGrayLight]}>{item.email}</Text>
-                    {item.isAdmin && (
+        <View style={styles.card}>
+            <View style={styles.cardLeft}>
+                <Image source={{ uri: normalizeImageUri(item?.image) }} style={styles.avatar} />
+                <View style={styles.textWrap}>
+                    <Text style={styles.userName} numberOfLines={1}>
+                        {item?.name || "Unnamed User"}
+                    </Text>
+                    <Text style={styles.userEmail} numberOfLines={1}>
+                        {item?.email || "No email"}
+                    </Text>
+                    {item?.isAdmin ? (
                         <View style={styles.adminBadge}>
-                            <Text style={styles.adminText}>Admin</Text>
+                            <Text style={styles.adminBadgeText}>Admin</Text>
                         </View>
-                    )}
+                    ) : null}
                 </View>
             </View>
-            <TouchableOpacity
-                style={styles.deleteButton}
-                onPress={() => deleteUser(item.id)}
-            >
-                <Ionicons name="trash-outline" size={24} color="#EF4444" />
+            <TouchableOpacity style={styles.deleteButton} onPress={() => deleteUser(item.id)}>
+                <Ionicons name="trash-outline" size={18} color="#FFFFFF" />
             </TouchableOpacity>
         </View>
     );
 
     return (
-        <View style={[styles.container, dark ? styles.bgDark : styles.bgLight]}>
-            <StatusBar barStyle={dark ? "light-content" : "dark-content"} />
-            
+        <View style={styles.container}>
+            <StatusBar barStyle="dark-content" />
+
             <View style={styles.header}>
-                <TouchableOpacity onPress={() => props.navigation.goBack()} style={styles.backButton}>
-                    <Ionicons name="arrow-back" size={24} color={dark ? "white" : "black"} />
-                </TouchableOpacity>
-                <Text style={[styles.headerTitle, dark ? styles.textWhite : styles.textDark]}>
-                    Users
-                </Text>
+                <View style={styles.headerRow}>
+                    <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+                        <Ionicons name="chevron-back-outline" size={22} color="#111827" />
+                    </TouchableOpacity>
+                    <Text style={styles.headerTitle}>Manage Users</Text>
+                </View>
+                <Text style={styles.headerSubtitle}>{totalUsers} users registered</Text>
             </View>
 
-            <View style={styles.searchContainer}>
+            <View style={styles.searchWrap}>
                 <Searchbar
                     placeholder="Search users..."
                     onChangeText={searchUser}
                     value={searchQuery}
-                    style={[styles.searchBar, dark ? styles.searchBarDark : styles.searchBarLight]}
-                    inputStyle={dark ? styles.textWhite : styles.textDark}
-                    iconColor={dark ? "#9CA3AF" : "#6B7280"}
-                    placeholderTextColor={dark ? "#9CA3AF" : "#6B7280"}
+                    style={styles.searchBar}
+                    inputStyle={styles.searchInput}
+                    iconColor="#6B7280"
+                    placeholderTextColor="#9CA3AF"
                 />
             </View>
 
             {loading ? (
-                <View style={styles.spinner}>
-                    <ActivityIndicator size="large" color="#10B981" />
+                <View style={styles.loaderWrap}>
+                    <ActivityIndicator size="large" color="#111827" />
                 </View>
             ) : (
                 <FlatList
@@ -179,140 +204,151 @@ const Users = (props) => {
                     renderItem={renderItem}
                     keyExtractor={(item) => item.id}
                     refreshing={refreshing}
-                    onRefresh={onRefresh}
-                    contentContainerStyle={styles.listContainer}
+                    onRefresh={() => {
+                        setRefreshing(true);
+                        fetchUsers(token);
+                    }}
+                    contentContainerStyle={styles.listContent}
                     ListEmptyComponent={
-                        <View style={styles.emptyContainer}>
-                            <Text style={[styles.emptyText, dark ? styles.textGray : styles.textGrayLight]}>No users found</Text>
+                        <View style={styles.emptyWrap}>
+                            <Ionicons name="people-outline" size={32} color="#9CA3AF" />
+                            <Text style={styles.emptyText}>No users found</Text>
                         </View>
                     }
                 />
             )}
         </View>
     );
-}
+};
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-    },
-    bgDark: {
-        backgroundColor: "#111827",
-    },
-    bgLight: {
         backgroundColor: "#F3F4F6",
     },
     header: {
-        padding: 20,
-        paddingTop: 50,
+        paddingHorizontal: 16,
+        paddingTop: 52,
+        paddingBottom: 10,
+    },
+    headerRow: {
         flexDirection: "row",
         alignItems: "center",
     },
     backButton: {
-        marginRight: 15,
+        width: 34,
+        height: 34,
+        borderRadius: 17,
+        marginRight: 6,
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: "#FFFFFF",
+        borderWidth: 1,
+        borderColor: "#E5E7EB",
     },
     headerTitle: {
+        color: "#111827",
         fontSize: 28,
-        fontWeight: "bold",
+        fontWeight: "700",
     },
-    searchContainer: {
-        paddingHorizontal: 20,
-        paddingBottom: 20,
+    headerSubtitle: {
+        marginTop: 2,
+        color: "#6B7280",
+        fontSize: 13,
+    },
+    searchWrap: {
+        paddingHorizontal: 16,
+        paddingBottom: 12,
     },
     searchBar: {
         elevation: 0,
-        borderRadius: 10,
-        height: 50,
+        borderRadius: 12,
+        height: 48,
+        backgroundColor: "#FFFFFF",
+        borderWidth: 1,
+        borderColor: "#E5E7EB",
     },
-    searchBarDark: {
-        backgroundColor: "#1F2937",
+    searchInput: {
+        color: "#111827",
+        fontSize: 14,
     },
-    searchBarLight: {
-        backgroundColor: "white",
+    loaderWrap: {
+        flex: 1,
+        alignItems: "center",
+        justifyContent: "center",
     },
-    listContainer: {
-        paddingHorizontal: 20,
-        paddingBottom: 100,
+    listContent: {
+        paddingHorizontal: 16,
+        paddingBottom: 26,
     },
-    spinner: {
-        height: height / 2,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    item: {
+    card: {
+        borderRadius: 14,
+        backgroundColor: "#FFFFFF",
+        borderWidth: 1,
+        borderColor: "#E5E7EB",
+        paddingHorizontal: 12,
+        paddingVertical: 12,
+        marginBottom: 10,
         flexDirection: "row",
         justifyContent: "space-between",
         alignItems: "center",
-        padding: 15,
-        marginBottom: 10,
-        borderRadius: 12,
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.1,
-        shadowRadius: 2,
-        elevation: 2,
     },
-    itemDark: {
-        backgroundColor: "#1F2937",
-    },
-    itemLight: {
-        backgroundColor: "white",
-    },
-    itemLeft: {
+    cardLeft: {
         flexDirection: "row",
         alignItems: "center",
         flex: 1,
+        marginRight: 8,
     },
     avatar: {
-        width: 50,
-        height: 50,
-        borderRadius: 25,
-        marginRight: 15,
+        width: 44,
+        height: 44,
+        borderRadius: 22,
         backgroundColor: "#E5E7EB",
+        marginRight: 10,
     },
-    itemName: {
-        fontSize: 16,
-        fontWeight: "bold",
-        marginBottom: 2,
+    textWrap: {
+        flex: 1,
     },
-    itemEmail: {
-        fontSize: 12,
-    },
-    adminBadge: {
-        backgroundColor: "#10B981",
-        paddingHorizontal: 8,
-        paddingVertical: 2,
-        borderRadius: 4,
-        alignSelf: "flex-start",
-        marginTop: 4,
-    },
-    adminText: {
-        color: "white",
-        fontSize: 10,
-        fontWeight: "bold",
-    },
-    deleteButton: {
-        padding: 10,
-    },
-    textWhite: {
-        color: "white",
-    },
-    textDark: {
+    userName: {
+        fontSize: 15,
         color: "#111827",
+        fontWeight: "700",
     },
-    textGray: {
-        color: "#9CA3AF",
-    },
-    textGrayLight: {
+    userEmail: {
+        marginTop: 2,
+        fontSize: 12,
         color: "#6B7280",
     },
-    emptyContainer: {
+    adminBadge: {
+        marginTop: 6,
+        backgroundColor: "#111827",
+        alignSelf: "flex-start",
+        borderRadius: 999,
+        paddingHorizontal: 8,
+        paddingVertical: 3,
+    },
+    adminBadgeText: {
+        color: "#FFFFFF",
+        fontSize: 10,
+        fontWeight: "700",
+    },
+    deleteButton: {
+        width: 34,
+        height: 34,
+        borderRadius: 10,
+        backgroundColor: "#DC2626",
         alignItems: "center",
-        marginTop: 50,
+        justifyContent: "center",
+    },
+    emptyWrap: {
+        marginTop: 40,
+        alignItems: "center",
     },
     emptyText: {
-        fontSize: 16,
-    }
+        marginTop: 8,
+        color: "#6B7280",
+        fontSize: 14,
+    },
 });
 
 export default Users;

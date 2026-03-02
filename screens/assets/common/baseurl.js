@@ -1,5 +1,5 @@
 import { Platform } from 'react-native'
 
-let baseURL = 'http://192.168.254.105:5000/api/v1/'
+let baseURL = 'https://3b22-2405-8d40-4058-aabd-bc0a-de9d-e35c-a77.ngrok-free.app/api/v1/'
 
 export default baseURL;

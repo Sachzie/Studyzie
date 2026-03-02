@@ -15,9 +15,14 @@ const Tab = createBottomTabNavigator();
 const Main = () => {
     const context = useContext(AuthGlobal);
     const isAuthenticated = Boolean(context?.stateUser?.isAuthenticated);
+    const isAdmin = Boolean(context?.stateUser?.user?.isAdmin);
 
     if (!isAuthenticated) {
         return <UserNavigator />
+    }
+
+    if (isAdmin) {
+        return <AdminNavigator />
     }
 
     return (
@@ -116,23 +121,6 @@ const Main = () => {
                 }}
             />
 
-            {context.stateUser.user?.isAdmin === true ? (
-                <Tab.Screen
-                    name="Admin"
-                    component={AdminNavigator}
-                    options={{
-                        headerShown: false,
-                        tabBarIcon: ({ color }) => (
-                            <Ionicons
-                                name="cog"
-                                style={{ position: "relative" }}
-                                color={color}
-                                size={30}
-                            />
-                        )
-                    }}
-                />
-            ) : null}
         </Tab.Navigator>
     )
 }

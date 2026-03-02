@@ -1,258 +1,314 @@
-import React, { useEffect, useState } from "react"
+import React, { useCallback, useState } from "react";
 import {
     View,
     Text,
     FlatList,
-    Dimensions,
     TextInput,
     StyleSheet,
     TouchableOpacity,
     StatusBar,
-    KeyboardAvoidingView,
-    Platform
-} from "react-native"
-import baseURL from "../assets/common/baseurl";
+    ActivityIndicator,
+} from "react-native";
 import axios from "axios";
-import AsyncStorage from '@react-native-async-storage/async-storage'
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import Toast from "react-native-toast-message";
 import { Ionicons } from "@expo/vector-icons";
+import { useFocusEffect } from "@react-navigation/native";
 
-var { width } = Dimensions.get("window")
+import baseURL from "../assets/common/baseurl";
 
-const Item = (props) => {
-    const { item, index, delete: deleteCategory, dark } = props;
-    return (
-        <View style={[styles.item, dark ? styles.itemDark : styles.itemLight]}>
-            <Text style={[styles.itemText, dark ? styles.textWhite : styles.textDark]}>{item.name}</Text>
-            <TouchableOpacity
-                style={styles.deleteButton}
-                onPress={() => deleteCategory(item.id)}
-            >
-                <Ionicons name="trash" size={20} color="white" />
-            </TouchableOpacity>
-        </View>
-    )
-}
-
-const Categories = (props) => {
-
+const Categories = ({ navigation }) => {
     const [categories, setCategories] = useState([]);
     const [categoryName, setCategoryName] = useState("");
-    const [token, setToken] = useState();
-    const [dark, setDark] = useState(true); // Default to dark mode for admin
+    const [loading, setLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
+    const [token, setToken] = useState("");
 
-    useEffect(() => {
-        AsyncStorage.getItem("jwt")
-            .then((res) => {
-                setToken(res);
-            })
-            .catch((error) => console.log(error));
-
-        axios
-            .get(`${baseURL}categories`)
-            .then((res) => setCategories(res.data))
-            .catch((error) => alert("Error loading categories"))
-
-        return () => {
+    const fetchCategories = useCallback(async () => {
+        try {
+            const response = await axios.get(`${baseURL}categories`);
+            setCategories(response.data || []);
+        } catch (error) {
             setCategories([]);
-            setToken();
+            Toast.show({
+                topOffset: 60,
+                type: "error",
+                text1: "Load failed",
+                text2: "Could not fetch categories.",
+            });
+        } finally {
+            setLoading(false);
+            setRefreshing(false);
         }
-    }, [])
+    }, []);
 
-    const addCategory = () => {
-        if (!categoryName) return;
-        
-        const category = {
-            name: categoryName
-        };
+    useFocusEffect(
+        useCallback(() => {
+            let isActive = true;
 
-        const config = {
-            headers: {
-                Authorization: `Bearer ${token}`,
-            }
-        };
+            const init = async () => {
+                setLoading(true);
+                try {
+                    const jwt = await AsyncStorage.getItem("jwt");
+                    if (isActive) setToken(jwt || "");
+                } catch (error) {
+                    if (isActive) setToken("");
+                }
+                if (isActive) fetchCategories();
+            };
 
-        axios
-            .post(`${baseURL}categories`, category, config)
-            .then((res) => {
-                setCategories([...categories, res.data]);
-                setCategoryName("");
-            })
-            .catch((error) => alert("Error adding category"));
-    }
+            init();
 
-    const deleteCategory = (id) => {
-        const config = {
-            headers: {
-                Authorization: `Bearer ${token}`,
-            }
-        };
+            return () => {
+                isActive = false;
+                setCategories([]);
+            };
+        }, [fetchCategories])
+    );
 
-        axios
-            .delete(`${baseURL}categories/${id}`, config)
-            .then((res) => {
-                const newCategories = categories.filter((item) => item.id !== id);
-                setCategories(newCategories);
-            })
-            .catch((error) => alert("Error deleting category"));
-    }
+    const addCategory = async () => {
+        const name = categoryName.trim();
+        if (!name) return;
 
-    return (
-        <View style={[styles.container, dark ? styles.bgDark : styles.bgLight]}>
-            <StatusBar barStyle={dark ? "light-content" : "dark-content"} />
-            
-            <View style={styles.header}>
-                <Text style={[styles.headerTitle, dark ? styles.textWhite : styles.textDark]}>
-                    Categories
+        try {
+            const response = await axios.post(
+                `${baseURL}categories`,
+                { name },
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                }
+            );
+            setCategories((prev) => [response.data, ...prev]);
+            setCategoryName("");
+            Toast.show({
+                topOffset: 60,
+                type: "success",
+                text1: "Category added",
+            });
+        } catch (error) {
+            Toast.show({
+                topOffset: 60,
+                type: "error",
+                text1: "Add failed",
+                text2: error?.response?.data?.message || "Please try again.",
+            });
+        }
+    };
+
+    const deleteCategory = async (id) => {
+        try {
+            await axios.delete(`${baseURL}categories/${id}`, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+            setCategories((prev) => prev.filter((item) => item.id !== id));
+            Toast.show({
+                topOffset: 60,
+                type: "success",
+                text1: "Category deleted",
+            });
+        } catch (error) {
+            Toast.show({
+                topOffset: 60,
+                type: "error",
+                text1: "Delete failed",
+                text2: "Please try again.",
+            });
+        }
+    };
+
+    const renderItem = ({ item }) => (
+        <View style={styles.card}>
+            <View style={styles.cardLeft}>
+                <View style={styles.tagIcon}>
+                    <Ionicons name="pricetag-outline" size={16} color="#374151" />
+                </View>
+                <Text style={styles.cardText} numberOfLines={1}>
+                    {item.name}
                 </Text>
             </View>
+            <TouchableOpacity style={styles.deleteButton} onPress={() => deleteCategory(item.id)}>
+                <Ionicons name="trash-outline" size={18} color="#FFFFFF" />
+            </TouchableOpacity>
+        </View>
+    );
 
-            <View style={styles.listContainer}>
-                <FlatList
-                    data={categories}
-                    renderItem={({ item, index }) => (
-                        <Item item={item} index={index} delete={deleteCategory} dark={dark} />
-                    )}
-                    keyExtractor={(item) => item.id}
-                    showsVerticalScrollIndicator={false}
-                    contentContainerStyle={{ paddingBottom: 20 }}
-                />
+    return (
+        <View style={styles.container}>
+            <StatusBar barStyle="dark-content" />
+
+            <View style={styles.header}>
+                <View style={styles.headerRow}>
+                    <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+                        <Ionicons name="chevron-back-outline" size={22} color="#111827" />
+                    </TouchableOpacity>
+                    <Text style={styles.headerTitle}>Manage Categories</Text>
+                </View>
+                <Text style={styles.headerSubtitle}>{categories.length} categories available</Text>
             </View>
 
-            <KeyboardAvoidingView 
-                behavior={Platform.OS === "ios" ? "padding" : "height"}
-                style={styles.bottomBarWrapper}
-            >
-                <View style={[styles.bottomBar, dark ? styles.bottomBarDark : styles.bottomBarLight]}>
-                    <View style={styles.inputContainer}>
-                        <TextInput
-                            value={categoryName}
-                            style={[styles.input, dark ? styles.inputDark : styles.inputLight]}
-                            onChangeText={(text) => setCategoryName(text)}
-                            placeholder="Add Category"
-                            placeholderTextColor={dark ? "#9CA3AF" : "#6B7280"}
-                        />
-                    </View>
-                    <TouchableOpacity onPress={() => addCategory()} style={styles.addButton}>
-                        <Ionicons name="add" size={24} color="white" />
-                    </TouchableOpacity>
+            <View style={styles.addCard}>
+                <TextInput
+                    value={categoryName}
+                    style={styles.input}
+                    onChangeText={setCategoryName}
+                    placeholder="Add a new category"
+                    placeholderTextColor="#9CA3AF"
+                />
+                <TouchableOpacity onPress={addCategory} style={styles.addButton}>
+                    <Ionicons name="add" size={20} color="#FFFFFF" />
+                </TouchableOpacity>
+            </View>
+
+            {loading ? (
+                <View style={styles.loaderWrap}>
+                    <ActivityIndicator size="large" color="#111827" />
                 </View>
-            </KeyboardAvoidingView>
+            ) : (
+                <FlatList
+                    data={categories}
+                    renderItem={renderItem}
+                    keyExtractor={(item) => item.id}
+                    refreshing={refreshing}
+                    onRefresh={() => {
+                        setRefreshing(true);
+                        fetchCategories();
+                    }}
+                    contentContainerStyle={styles.listContent}
+                    ListEmptyComponent={
+                        <View style={styles.emptyWrap}>
+                            <Ionicons name="pricetags-outline" size={32} color="#9CA3AF" />
+                            <Text style={styles.emptyText}>No categories yet</Text>
+                        </View>
+                    }
+                />
+            )}
         </View>
-    )
-}
+    );
+};
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-    },
-    bgDark: {
-        backgroundColor: "#111827",
-    },
-    bgLight: {
         backgroundColor: "#F3F4F6",
     },
     header: {
-        padding: 20,
-        paddingTop: 50,
-        marginBottom: 10,
+        paddingHorizontal: 16,
+        paddingTop: 52,
+        paddingBottom: 10,
     },
-    headerTitle: {
-        fontSize: 28,
-        fontWeight: "bold",
-    },
-    listContainer: {
-        flex: 1,
-        paddingHorizontal: 20,
-    },
-    bottomBarWrapper: {
-        width: width,
-    },
-    bottomBar: {
-        padding: 15,
+    headerRow: {
         flexDirection: "row",
         alignItems: "center",
-        justifyContent: "space-between",
-        borderTopLeftRadius: 20,
-        borderTopRightRadius: 20,
-        elevation: 10,
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: -2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 5,
     },
-    bottomBarDark: {
-        backgroundColor: "#1F2937",
-    },
-    bottomBarLight: {
-        backgroundColor: "white",
-    },
-    inputContainer: {
-        flex: 1,
-        marginRight: 15,
-    },
-    input: {
-        height: 50,
-        borderRadius: 25,
-        paddingHorizontal: 20,
-        borderWidth: 1,
-    },
-    inputDark: {
-        backgroundColor: "#374151",
-        borderColor: "#4B5563",
-        color: "white",
-    },
-    inputLight: {
-        backgroundColor: "#F9FAFB",
-        borderColor: "#E5E7EB",
-        color: "#111827",
-    },
-    addButton: {
-        backgroundColor: "#10B981",
-        width: 50,
-        height: 50,
-        borderRadius: 25,
+    backButton: {
+        width: 34,
+        height: 34,
+        borderRadius: 17,
+        marginRight: 6,
         alignItems: "center",
         justifyContent: "center",
-        elevation: 4,
-        shadowColor: "#10B981",
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 6,
+        backgroundColor: "#FFFFFF",
+        borderWidth: 1,
+        borderColor: "#E5E7EB",
     },
-    item: {
-        padding: 20,
-        marginVertical: 8,
+    headerTitle: {
+        color: "#111827",
+        fontSize: 28,
+        fontWeight: "700",
+    },
+    headerSubtitle: {
+        marginTop: 2,
+        color: "#6B7280",
+        fontSize: 13,
+    },
+    addCard: {
+        marginHorizontal: 16,
+        marginBottom: 10,
+        borderRadius: 14,
+        backgroundColor: "#FFFFFF",
+        borderWidth: 1,
+        borderColor: "#E5E7EB",
+        padding: 8,
         flexDirection: "row",
         alignItems: "center",
+    },
+    input: {
+        flex: 1,
+        height: 44,
+        paddingHorizontal: 12,
+        color: "#111827",
+        fontSize: 14,
+    },
+    addButton: {
+        width: 40,
+        height: 40,
+        borderRadius: 12,
+        backgroundColor: "#111827",
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    loaderWrap: {
+        flex: 1,
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    listContent: {
+        paddingHorizontal: 16,
+        paddingBottom: 30,
+    },
+    card: {
+        borderRadius: 14,
+        backgroundColor: "#FFFFFF",
+        borderWidth: 1,
+        borderColor: "#E5E7EB",
+        paddingHorizontal: 12,
+        paddingVertical: 12,
+        marginBottom: 10,
+        flexDirection: "row",
         justifyContent: "space-between",
-        borderRadius: 15,
-        elevation: 2,
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
+        alignItems: "center",
     },
-    itemDark: {
-        backgroundColor: "#1F2937",
+    cardLeft: {
+        flexDirection: "row",
+        alignItems: "center",
+        flex: 1,
+        marginRight: 8,
     },
-    itemLight: {
-        backgroundColor: "white",
+    tagIcon: {
+        width: 30,
+        height: 30,
+        borderRadius: 10,
+        backgroundColor: "#F3F4F6",
+        alignItems: "center",
+        justifyContent: "center",
+        marginRight: 10,
     },
-    itemText: {
-        fontSize: 16,
+    cardText: {
+        color: "#111827",
+        fontSize: 15,
         fontWeight: "600",
     },
     deleteButton: {
-        backgroundColor: "#EF4444",
-        padding: 10,
+        width: 34,
+        height: 34,
         borderRadius: 10,
+        backgroundColor: "#DC2626",
+        alignItems: "center",
+        justifyContent: "center",
     },
-    textWhite: {
-        color: "white",
+    emptyWrap: {
+        marginTop: 40,
+        alignItems: "center",
     },
-    textDark: {
-        color: "#111827",
-    }
-})
+    emptyText: {
+        marginTop: 8,
+        color: "#6B7280",
+        fontSize: 14,
+    },
+});
 
 export default Categories;
