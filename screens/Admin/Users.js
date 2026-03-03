@@ -162,9 +162,14 @@ const Users = ({ navigation }) => {
                     ) : null}
                 </View>
             </View>
-            <TouchableOpacity style={styles.deleteButton} onPress={() => deleteUser(item.id)}>
-                <Ionicons name="trash-outline" size={18} color="#FFFFFF" />
-            </TouchableOpacity>
+            <View style={styles.buttonGroup}>
+                <TouchableOpacity style={styles.editButton} onPress={() => navigation.navigate("UserForm", { item })}>
+                    <Ionicons name="create-outline" size={18} color="#FFFFFF" />
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.deleteButton} onPress={() => deleteUser(item.id)}>
+                    <Ionicons name="trash-outline" size={18} color="#FFFFFF" />
+                </TouchableOpacity>
+            </View>
         </View>
     );
 
@@ -217,6 +222,10 @@ const Users = ({ navigation }) => {
                     }
                 />
             )}
+
+            <TouchableOpacity style={styles.fab} onPress={() => navigation.navigate("UserForm")}>
+                <Ionicons name="add" size={30} color="#FFFFFF" />
+            </TouchableOpacity>
         </View>
     );
 };
@@ -332,6 +341,18 @@ const styles = StyleSheet.create({
         fontSize: 10,
         fontWeight: "700",
     },
+    buttonGroup: {
+        flexDirection: "row",
+    },
+    editButton: {
+        width: 34,
+        height: 34,
+        borderRadius: 10,
+        backgroundColor: "#2563EB",
+        alignItems: "center",
+        justifyContent: "center",
+        marginRight: 8,
+    },
     deleteButton: {
         width: 34,
         height: 34,
@@ -348,6 +369,22 @@ const styles = StyleSheet.create({
         marginTop: 8,
         color: "#6B7280",
         fontSize: 14,
+    },
+    fab: {
+        position: "absolute",
+        bottom: 28,
+        right: 22,
+        width: 58,
+        height: 58,
+        borderRadius: 29,
+        backgroundColor: "#111827",
+        alignItems: "center",
+        justifyContent: "center",
+        elevation: 5,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.2,
+        shadowRadius: 6,
     },
 });
 

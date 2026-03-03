@@ -59,15 +59,7 @@ const resolveImageUri = (rawUri) => {
     if (rawUri.startsWith("data:image")) return rawUri;
 
     if (/^https?:\/\//i.test(rawUri)) {
-        try {
-            const url = new URL(rawUri);
-            if (url.hostname === "localhost" || url.hostname === "127.0.0.1") {
-                return `${API_ORIGIN}${url.pathname}`;
-            }
-            return rawUri;
-        } catch (e) {
-            return rawUri;
-        }
+        return rawUri;
     }
 
     if (rawUri.startsWith("/")) {

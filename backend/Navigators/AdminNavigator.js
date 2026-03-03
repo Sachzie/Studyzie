@@ -5,6 +5,7 @@ import Products from "../../screens/Admin/Products";
 import ProductForm from "../../screens/Admin/ProductForm";
 import Categories from "../../screens/Admin/Categories";
 import Users from "../../screens/Admin/Users";
+import UserForm from "../../screens/Admin/UserForm";
 import AdminTabs from "./AdminTabs";
 import AdminProfile from "../../screens/Admin/AdminProfile";
 
@@ -56,6 +57,13 @@ const AdminNavigator = () => {
             <Stack.Screen
                 name="Users"
                 component={Users}
+                options={{
+                    headerShown: false,
+                }}
+            />
+            <Stack.Screen
+                name="UserForm"
+                component={UserForm}
                 options={{
                     headerShown: false,
                 }}
