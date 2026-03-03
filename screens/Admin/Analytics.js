@@ -23,6 +23,7 @@ import oilpastelImg from "../Picures/oilpastel.png";
 import baseURL from "../assets/common/baseurl";
 
 const { width } = Dimensions.get("window");
+const API_ORIGIN = baseURL.replace(/api\/v1\/?$/, "");
 
 const periods = ["Monthly", "Weekly", "Today"];
 const IMAGE_SOURCE_BY_KEY = {
@@ -57,6 +58,27 @@ const getImageKeyFromName = (name) => {
     if (normalized.includes("pencil")) return "pencil";
     if (normalized.includes("a4")) return "a4";
     return "";
+};
+
+const resolveImageUri = (rawUri) => {
+    if (!rawUri) return "";
+    if (/^https?:\/\//i.test(rawUri)) {
+        try {
+            const url = new URL(rawUri);
+            if (url.hostname === "localhost" || url.hostname === "127.0.0.1") {
+                return `${API_ORIGIN}${url.pathname}`;
+            }
+            return rawUri;
+        } catch (e) {
+            return rawUri;
+        }
+    }
+
+    if (rawUri.startsWith("/")) {
+        return `${API_ORIGIN}${rawUri}`;
+    }
+
+    return `${API_ORIGIN}/public/uploads/${rawUri}`;
 };
 
 const chartConfig = {
@@ -273,18 +295,19 @@ const Analytics = () => {
                         ) : (
                             trendingItems.map((item) => {
                                 const tag = resolveItemTag(item);
+                                const imageUri = resolveImageUri(item?.image || "");
+                                const imageKey = normalizeImageKey(item.imageKey) || getImageKeyFromName(item.name);
+                                const imageSource = imageUri
+                                    ? { uri: imageUri }
+                                    : (
+                                        IMAGE_SOURCE_BY_KEY[imageKey] || {
+                                            uri: "https://dummyimage.com/100x100/e5e7eb/6b7280&text=No+Image",
+                                        }
+                                    );
                                 return (
                                     <View key={item.id} style={styles.itemRow}>
                                         <Image
-                                            source={
-                                                IMAGE_SOURCE_BY_KEY[
-                                                    normalizeImageKey(item.imageKey) || getImageKeyFromName(item.name)
-                                                ] || {
-                                                    uri:
-                                                        item.image ||
-                                                        "https://dummyimage.com/100x100/e5e7eb/6b7280&text=No+Image",
-                                                }
-                                            }
+                                            source={imageSource}
                                             style={styles.itemImage}
                                         />
                                         <View style={styles.itemTextWrap}>

@@ -4,7 +4,31 @@ import { View, StyleSheet, Dimensions, } from 'react-native'
 import { FlatList, TouchableOpacity } from 'react-native';
 import { Surface, Text, Avatar, Divider } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
+import baseURL from "../assets/common/baseurl";
 var { width } = Dimensions.get("window")
+const API_ORIGIN = baseURL.replace(/api\/v1\/?$/, "");
+const FALLBACK_IMAGE = "https://cdn.pixabay.com/photo/2012/04/01/17/29/box-23649_960_720.png";
+
+const resolveImageUri = (rawUri) => {
+    if (!rawUri) return "";
+    if (/^https?:\/\//i.test(rawUri)) {
+        try {
+            const url = new URL(rawUri);
+            if (url.hostname === "localhost" || url.hostname === "127.0.0.1") {
+                return `${API_ORIGIN}${url.pathname}`;
+            }
+            return rawUri;
+        } catch (e) {
+            return rawUri;
+        }
+    }
+
+    if (rawUri.startsWith("/")) {
+        return `${API_ORIGIN}${rawUri}`;
+    }
+
+    return `${API_ORIGIN}/public/uploads/${rawUri}`;
+};
 
 const SearchedProduct = ({ productsFiltered }) => {
     const navigation = useNavigation();
@@ -24,8 +48,7 @@ const SearchedProduct = ({ productsFiltered }) => {
                                 <Surface width="90%">
                                     <Avatar.Image size={24}
                                         source={{
-                                            uri: item.image ?
-                                                item.image : 'https://cdn.pixabay.com/photo/2012/04/01/17/29/box-23649_960_720.png'
+                                            uri: resolveImageUri(item?.image || "") || FALLBACK_IMAGE
                                         }} />
                                     <Text variant="labelMedium">{item.name}</Text>
                                     <Text variant="labelMedium">{item.description}</Text>

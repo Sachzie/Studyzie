@@ -7,8 +7,32 @@ import Toast from "react-native-toast-message";
 import { Ionicons } from "@expo/vector-icons";
 import AuthGlobal from "../../backend/Context/Store/AuthGlobal";
 import { useNavigation } from "@react-navigation/native";
+import baseURL from "../assets/common/baseurl";
 
 const { width } = Dimensions.get("window");
+const API_ORIGIN = baseURL.replace(/api\/v1\/?$/, "");
+const FALLBACK_IMAGE = "https://cdn.pixabay.com/photo/2012/04/01/17/29/box-23649_960_720.png";
+
+const resolveImageUri = (rawUri) => {
+    if (!rawUri) return "";
+    if (/^https?:\/\//i.test(rawUri)) {
+        try {
+            const url = new URL(rawUri);
+            if (url.hostname === "localhost" || url.hostname === "127.0.0.1") {
+                return `${API_ORIGIN}${url.pathname}`;
+            }
+            return rawUri;
+        } catch (e) {
+            return rawUri;
+        }
+    }
+
+    if (rawUri.startsWith("/")) {
+        return `${API_ORIGIN}${rawUri}`;
+    }
+
+    return `${API_ORIGIN}/public/uploads/${rawUri}`;
+};
 
 const SingleProduct = ({ route }) => {
     const item = route.params.item;
@@ -24,11 +48,10 @@ const SingleProduct = ({ route }) => {
         maximumFractionDigits: 2,
     })}`;
 
-    const resolvedImage = item?.imageSource
-        ? item.imageSource
-        : {
-            uri: item?.image || "https://cdn.pixabay.com/photo/2012/04/01/17/29/box-23649_960_720.png",
-        };
+    const imageUri = resolveImageUri(item?.image || "");
+    const resolvedImage = imageUri
+        ? { uri: imageUri }
+        : (item?.imageSource || { uri: FALLBACK_IMAGE });
 
     const handleAddToCart = () => {
         if (!isAuthenticated) {

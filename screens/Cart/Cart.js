@@ -29,6 +29,35 @@ const IMAGE_SOURCE_BY_KEY = {
     oilpastel: oilpastelImg,
 };
 
+const normalizeImageKey = (value) =>
+    (value || "")
+        .toString()
+        .trim()
+        .toLowerCase()
+        .replace(/\s+/g, "")
+        .replace(/[^a-z0-9]/g, "");
+
+const resolveImageUri = (rawUri) => {
+    if (!rawUri) return "";
+    if (/^https?:\/\//i.test(rawUri)) {
+        try {
+            const url = new URL(rawUri);
+            if (url.hostname === "localhost" || url.hostname === "127.0.0.1") {
+                return `${ASSET_HOST}${url.pathname}`;
+            }
+            return rawUri;
+        } catch (e) {
+            return rawUri;
+        }
+    }
+
+    if (rawUri.startsWith("/")) {
+        return `${ASSET_HOST}${rawUri}`;
+    }
+
+    return `${ASSET_HOST}/public/uploads/${rawUri}`;
+};
+
 const formatPeso = (value) =>
     `\u20B1${Number(value || 0).toLocaleString("en-PH", {
         minimumFractionDigits: 2,
@@ -39,16 +68,20 @@ const getItemKey = (item, index) =>
     item?._id?.$oid || item?._id || item?.id || `${item?.name || "item"}-${index}`;
 
 const getImageSource = (item) => {
-    if (item?.imageSource) return item.imageSource;
-    if (item?.imageKey && IMAGE_SOURCE_BY_KEY[item.imageKey]) {
-        return IMAGE_SOURCE_BY_KEY[item.imageKey];
+    const imageUri = resolveImageUri(item?.image || "");
+    if (imageUri) {
+        return { uri: imageUri };
     }
-    const src = item?.image || "";
-    if (typeof src === "string" && src.length > 0) {
-        const isAbsolute = /^https?:\/\//i.test(src);
-        const url = isAbsolute ? src : `${ASSET_HOST}${src.startsWith("/") ? "" : "/"}${src}`;
-        return { uri: url };
+
+    if (item?.imageSource) {
+        return item.imageSource;
     }
+
+    const imageKey = normalizeImageKey(item?.imageKey);
+    if (imageKey && IMAGE_SOURCE_BY_KEY[imageKey]) {
+        return IMAGE_SOURCE_BY_KEY[imageKey];
+    }
+
     return { uri: FALLBACK_IMAGE };
 };
 
