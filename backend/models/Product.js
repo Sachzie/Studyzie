@@ -25,6 +25,11 @@ const productSchema = new mongoose.Schema(
       default: "",
       trim: true
     },
+    cloudinaryPublicId: {
+      type: String,
+      default: "",
+      trim: true
+    },
     price: {
       type: Number,
       required: true,

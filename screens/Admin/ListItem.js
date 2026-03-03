@@ -81,11 +81,6 @@ const ListItem = ({ item }) => {
     const [imageError, setImageError] = useState(false);
 
     const imageSource = useMemo(() => {
-        const imageKey = normalizeImageKey(item?.imageKey) || getImageKeyFromName(item?.name);
-        if (imageKey && IMAGE_SOURCE_BY_KEY[imageKey]) {
-            return IMAGE_SOURCE_BY_KEY[imageKey];
-        }
-
         if (imageError) {
             return DEFAULT_IMAGE;
         }
@@ -93,6 +88,11 @@ const ListItem = ({ item }) => {
         const imageUri = resolveImageUri(item?.image || "");
         if (imageUri) {
             return { uri: imageUri };
+        }
+
+        const imageKey = normalizeImageKey(item?.imageKey) || getImageKeyFromName(item?.name);
+        if (imageKey && IMAGE_SOURCE_BY_KEY[imageKey]) {
+            return IMAGE_SOURCE_BY_KEY[imageKey];
         }
 
         return DEFAULT_IMAGE;

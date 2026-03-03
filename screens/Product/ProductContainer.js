@@ -9,6 +9,8 @@ import baseURL from "../assets/common/baseurl";
 import axios from "axios";
 import colors from "../assets/common/colors";
 
+const API_ORIGIN = baseURL.replace(/api\/v1\/?$/, "");
+
 const IMAGE_SOURCE_BY_KEY = {
     a4: require("../Picures/a4.jpg"),
     ballpen: require("../Picures/ballpen.jpg"),
@@ -131,7 +133,35 @@ const getImageKeyFromName = (name) => {
     return "";
 };
 
+const resolveImageUri = (rawUri) => {
+    if (!rawUri) return "";
+    if (rawUri.startsWith("data:image")) return rawUri;
+
+    if (/^https?:\/\//i.test(rawUri)) {
+        try {
+            const url = new URL(rawUri);
+            if (url.hostname === "localhost" || url.hostname === "127.0.0.1") {
+                return `${API_ORIGIN}${url.pathname}`;
+            }
+            return rawUri;
+        } catch (e) {
+            return rawUri;
+        }
+    }
+
+    if (rawUri.startsWith("/")) {
+        return `${API_ORIGIN}${rawUri}`;
+    }
+
+    return `${API_ORIGIN}/public/uploads/${rawUri}`;
+};
+
 const resolveImageSource = (item) => {
+    const imageUri = resolveImageUri(item?.image || "");
+    if (imageUri) {
+        return { uri: imageUri };
+    }
+
     const keyFromItem = normalizeImageKey(item?.imageKey);
     const keyFromName = getImageKeyFromName(item?.name);
     const key = keyFromItem || keyFromName;
