@@ -209,7 +209,14 @@ router.post('/login', async (req, res) => {
     const secret = process.env.JWT_SECRET;
 
     if (!user) {
-      return res.status(400).send('The user not found');
+      return res.status(400).json({ success: false, message: 'The user was not found' });
+    }
+
+    if (!secret) {
+      return res.status(500).json({
+        success: false,
+        message: 'Server authentication is not configured. Set JWT_SECRET.'
+      });
     }
 
     if (user && bcrypt.compareSync(req.body.password, user.passwordHash)) {
@@ -224,10 +231,10 @@ router.post('/login', async (req, res) => {
 
       res.status(200).send({ user: user.email, token: token, userId: user.id, isAdmin: user.isAdmin });
     } else {
-      res.status(400).send('password is wrong');
+      res.status(400).json({ success: false, message: 'Password is wrong' });
     }
   } catch (error) {
-    return res.status(500).json({ success: false, error: error });
+    return res.status(500).json({ success: false, message: error.message || 'Login failed' });
   }
 });
 
