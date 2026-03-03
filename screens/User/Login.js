@@ -4,6 +4,7 @@ import { useNavigation, useRoute } from "@react-navigation/native";
 import AuthGlobal from "../../backend/Context/Store/AuthGlobal";
 import { loginUser } from "../../backend/Context/Actions/Auth.actions";
 import { Ionicons } from "@expo/vector-icons";
+import Notification from "../../Shared/Notification";
 
 const Login = () => {
     const context = useContext(AuthGlobal);
@@ -11,7 +12,7 @@ const Login = () => {
     const route = useRoute();
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
-    const [error, setError] = useState("");
+    const [notification, setNotification] = useState({ visible: false, message: '', type: '' });
     const [isLoading, setIsLoading] = useState(false);
 
     useEffect(() => {
@@ -22,20 +23,23 @@ const Login = () => {
 
     const handleSubmit = async () => {
         if (!email.trim() || !password.trim()) {
-            setError("Please enter your email and password.");
+            setNotification({ visible: true, message: "Please enter your email and password.", type: "error" });
             return;
         }
-        setError("");
         setIsLoading(true);
         
         try {
             await loginUser({ email: email.trim().toLowerCase(), password }, context.dispatch);
-            // Success is handled by state change and redirection
+            // The redirection will be handled by the useEffect
         } catch (err) {
-            setError("Invalid credentials. Please try again.");
+            setNotification({ visible: true, message: "Invalid credentials. Please try again.", type: "error" });
         } finally {
             setIsLoading(false);
         }
+    };
+
+    const handleNotificationClose = () => {
+        setNotification({ ...notification, visible: false });
     };
 
     return (
@@ -77,7 +81,12 @@ const Login = () => {
                         <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
                     </TouchableOpacity>
 
-                    {error ? <Text style={styles.errorText}>{error}</Text> : null}
+                    <Notification 
+                        visible={notification.visible} 
+                        message={notification.message} 
+                        type={notification.type} 
+                        onClose={handleNotificationClose} 
+                    />
 
                     <TouchableOpacity 
                         style={[styles.loginButton, isLoading && styles.disabledButton]} 

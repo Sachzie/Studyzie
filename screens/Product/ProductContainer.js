@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useState, useContext, useEffect, useRef } from "react";
 import { View, StyleSheet, ActivityIndicator, ScrollView } from "react-native";
 import { Surface, Text, Searchbar } from "react-native-paper";
 import { useFocusEffect } from "@react-navigation/native";
@@ -8,6 +8,8 @@ import Banner from "../Shared/Banner";
 import baseURL from "../assets/common/baseurl";
 import axios from "axios";
 import colors from "../assets/common/colors";
+import Notification from "../../Shared/Notification";
+import AuthGlobal from "../../backend/Context/Store/AuthGlobal";
 
 const API_ORIGIN = baseURL.replace(/api\/v1\/?$/, "");
 
@@ -175,6 +177,7 @@ const normalizeCategory = (item, index) => ({
 });
 
 const ProductContainer = () => {
+    const context = useContext(AuthGlobal);
     const [products, setProducts] = useState(LOCAL_PRODUCTS);
     const [productsCtg, setProductsCtg] = useState(LOCAL_PRODUCTS);
     const [categories, setCategories] = useState(LOCAL_CATEGORIES);
@@ -183,6 +186,15 @@ const ProductContainer = () => {
     const [selectedCategory, setSelectedCategory] = useState("all");
     const [loading, setLoading] = useState(false);
     const [notice, setNotice] = useState("");
+    const [notification, setNotification] = useState({ visible: false, message: '', type: '' });
+    const justLoggedIn = useRef(true);
+
+    useEffect(() => {
+        if (context.stateUser.isAuthenticated && justLoggedIn.current) {
+            setNotification({ visible: true, message: "Login successful!", type: "success" });
+            justLoggedIn.current = false; // Reset after showing the notification
+        }
+    }, [context.stateUser.isAuthenticated]);
 
     const applyFilters = useCallback((sourceProducts, searchText, categoryId) => {
         const normalizedSearch = searchText.trim().toLowerCase();
@@ -283,6 +295,12 @@ const ProductContainer = () => {
 
     return (
         <Surface style={styles.screen}>
+            <Notification 
+                visible={notification.visible} 
+                message={notification.message} 
+                type={notification.type} 
+                onClose={() => setNotification({ ...notification, visible: false })} 
+            />
             <View style={styles.header}>
                 <Searchbar
                     placeholder="Search school supplies"
