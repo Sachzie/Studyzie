@@ -2,8 +2,69 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const multer = require("multer");
+const { v2: cloudinary } = require("cloudinary");
+
+const FILE_TYPE_MAP = {
+  "image/png": "png",
+  "image/jpeg": "jpeg",
+  "image/jpg": "jpg",
+};
+
+const uploadOptions = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    const isValid = Boolean(FILE_TYPE_MAP[file.mimetype]);
+    if (!isValid) {
+      return cb(new Error("Invalid image type"));
+    }
+    return cb(null, true);
+  },
+});
+
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
 
 const router = express.Router();
+
+const isCloudinaryConfigured = () =>
+  Boolean(
+    process.env.CLOUDINARY_CLOUD_NAME
+      && process.env.CLOUDINARY_API_KEY
+      && process.env.CLOUDINARY_API_SECRET
+  );
+
+const uploadImageToCloudinary = async (file) => {
+  if (!isCloudinaryConfigured()) {
+    throw new Error("Cloudinary is not configured. Set Cloudinary environment variables.");
+  }
+
+  const baseName = (file.originalname || "user-image")
+    .split(".")
+    .slice(0, -1)
+    .join(".")
+    .replace(/[^a-zA-Z0-9-_]/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "")
+    .toLowerCase()
+    .slice(0, 50) || "user-image";
+
+  const dataUri = `data:${file.mimetype};base64,${file.buffer.toString("base64")}`;
+  const uploaded = await cloudinary.uploader.upload(dataUri, {
+    public_id: `studyzie/users/${baseName}-${Date.now()}`,
+    resource_type: "image",
+    overwrite: false,
+  });
+
+  return {
+    imageUrl: uploaded.secure_url,
+    publicId: uploaded.public_id,
+  };
+};
 
 // GET all users
 router.get('/', async (req, res) => {
@@ -34,8 +95,17 @@ router.get('/:id', async (req, res) => {
 });
 
 // POST register user
-router.post('/', async (req, res) => {
+router.post('/', uploadOptions.single("image"), async (req, res) => {
   try {
+    const file = req.file;
+    let imageUrl, cloudinaryPublicId;
+
+    if (file) {
+        const uploadedImage = await uploadImageToCloudinary(file);
+        imageUrl = uploadedImage.imageUrl;
+        cloudinaryPublicId = uploadedImage.publicId;
+    }
+
     let user = new User({
       name: req.body.name,
       email: req.body.email,
@@ -47,7 +117,8 @@ router.post('/', async (req, res) => {
       zip: req.body.zip,
       city: req.body.city,
       country: req.body.country,
-      image: req.body.image,
+      image: imageUrl,
+      cloudinaryPublicId: cloudinaryPublicId,
     });
     user = await user.save();
 
@@ -63,8 +134,17 @@ router.post('/', async (req, res) => {
 });
 
 // POST register user (alternative endpoint)
-router.post('/register', async (req, res) => {
+router.post('/register', uploadOptions.single("image"), async (req, res) => {
   try {
+    const file = req.file;
+    let imageUrl, cloudinaryPublicId;
+
+    if (file) {
+        const uploadedImage = await uploadImageToCloudinary(file);
+        imageUrl = uploadedImage.imageUrl;
+        cloudinaryPublicId = uploadedImage.publicId;
+    }
+
     let user = new User({
       name: req.body.name,
       email: req.body.email,
@@ -76,7 +156,8 @@ router.post('/register', async (req, res) => {
       zip: req.body.zip,
       city: req.body.city,
       country: req.body.country,
-      image: req.body.image,
+      image: imageUrl,
+      cloudinaryPublicId: cloudinaryPublicId,
     });
     user = await user.save();
 
@@ -93,7 +174,7 @@ router.post('/register', async (req, res) => {
 
 
 // PUT update user
-router.put('/:id', async (req, res) => {
+router.put('/:id', uploadOptions.single("image"), async (req, res) => {
   try {
     const userExist = await User.findById(req.params.id);
     let newPassword
@@ -101,6 +182,15 @@ router.put('/:id', async (req, res) => {
       newPassword = bcrypt.hashSync(req.body.password, 10)
     } else {
       newPassword = userExist.passwordHash;
+    }
+
+    const file = req.file;
+    let imageUrl, cloudinaryPublicId;
+
+    if (file) {
+        const uploadedImage = await uploadImageToCloudinary(file);
+        imageUrl = uploadedImage.imageUrl;
+        cloudinaryPublicId = uploadedImage.publicId;
     }
 
     const user = await User.findByIdAndUpdate(
@@ -116,7 +206,8 @@ router.put('/:id', async (req, res) => {
         zip: req.body.zip,
         city: req.body.city,
         country: req.body.country,
-        image: req.body.image,
+        image: imageUrl,
+        cloudinaryPublicId: cloudinaryPublicId,
       },
       { new: true }
     );
