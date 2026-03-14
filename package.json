@@ -4,8 +4,10 @@
   "main": "index.js",
   "scripts": {
     "start": "expo start",
+    "start:local": "npm run update-ngrok-url && expo start",
     "backend": "cd backend && npm run dev",
-    "dev": "concurrently \"npm run backend\" \"npm start\"",
+    "dev": "npm start",
+    "dev:local": "concurrently \"npm run backend\" \"npm run start:local\"",
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
