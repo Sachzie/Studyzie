@@ -9,6 +9,7 @@ import baseURL from '../assets/common/baseurl';
 import AuthGlobal from '../../backend/Context/Store/AuthGlobal';
 import Toast from 'react-native-toast-message';
 import { clearCart } from '../../backend/Redux/Actions/cartActions';
+import { clearCartStorage } from '../../backend/Context/Store/CartStorage';
 
 var { width, height } = Dimensions.get("window");
 const API_ORIGIN = baseURL.replace(/api\/v1\/?$/, "");
@@ -42,43 +43,58 @@ const Confirm = (props) => {
     const dispatch = useDispatch()
     let navigation = useNavigation()
 
-    const confirmOrder = () => {
-        const order = finalOrder.order.order;
-
-        AsyncStorage.getItem("jwt")
-            .then((res) => {
-                setToken(res)
-            })
-            .catch((error) => console.log(error))
-        
-        const config = {
-            headers: {
-                Authorization: `Bearer ${token}`
-            }
+    const confirmOrder = async () => {
+        const order = finalOrder?.order?.order;
+        if (!order) {
+            Toast.show({
+                topOffset: 60,
+                type: "error",
+                text1: "Order missing",
+                text2: "Please go back and try again.",
+            });
+            return;
         }
-        
-        axios
-            .post(`${baseURL}orders`, order, config)
-            .then((res) => {
-                Toast.show({
-                    topOffset: 60,
-                    type: "success",
-                    text1: "Order Completed",
-                    text2: "Thank you for shopping with Studyzie!",
-                });
-                setTimeout(() => {
-                    dispatch(clearCart())
-                    navigation.navigate('Cart Screen', { screen: 'Cart' })
-                }, 500);
-            })
-            .catch((error) => {
+
+        try {
+            const storedToken = await AsyncStorage.getItem("jwt");
+            if (!storedToken) {
                 Toast.show({
                     topOffset: 60,
                     type: "error",
-                    text1: "Something went wrong",
-                    text2: "Please try again",
+                    text1: "Please login",
+                    text2: "You need to login before placing an order.",
                 });
+                navigation.navigate("User", { screen: "Login" });
+                return;
+            }
+
+            setToken(storedToken);
+            const config = {
+                headers: {
+                    Authorization: `Bearer ${storedToken}`
+                }
+            };
+
+            await axios.post(`${baseURL}orders`, order, config);
+            Toast.show({
+                topOffset: 60,
+                type: "success",
+                text1: "Order Completed",
+                text2: "Thank you for shopping with Studyzie!",
             });
+            setTimeout(() => {
+                dispatch(clearCart())
+                clearCartStorage().catch(() => {});
+                navigation.navigate('Cart Screen', { screen: 'Cart' })
+            }, 500);
+        } catch (error) {
+            Toast.show({
+                topOffset: 60,
+                type: "error",
+                text1: "Something went wrong",
+                text2: "Please try again",
+            });
+        }
     }
 
     return (
@@ -119,6 +135,7 @@ const Confirm = (props) => {
                             <Text style={styles.sectionTitle}>Items</Text>
                             <Divider style={styles.divider} />
                             {finalOrder.order.order.orderItems.map((item) => {
+                                const quantity = Number(item?.quantity) || 1;
                                 return (
                                     <View key={item.id || Math.random()} style={styles.itemRow}>
                                         <Avatar.Image 
@@ -130,6 +147,7 @@ const Confirm = (props) => {
                                         <View style={styles.itemInfo}>
                                             <Text style={styles.itemName}>{item.name}</Text>
                                             <Text style={styles.itemPrice}>$ {item.price}</Text>
+                                            <Text style={styles.itemQty}>Qty: {quantity}</Text>
                                         </View>
                                     </View>
                                 )
@@ -228,6 +246,12 @@ const styles = StyleSheet.create({
         color: "#10B981",
         fontWeight: "700",
         marginTop: 4
+    },
+    itemQty: {
+        marginTop: 2,
+        fontSize: 12,
+        color: "#6B7280",
+        fontWeight: "600",
     },
     buttonContainer: {
         alignItems: "center",

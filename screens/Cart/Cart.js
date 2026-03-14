@@ -17,6 +17,7 @@ import yellowpadImg from "../Picures/yellowpad.jpg";
 import oilpastelImg from "../Picures/oilpastel.png";
 
 const { height } = Dimensions.get("window");
+const TAB_BAR_SPACE = 86;
 const FALLBACK_IMAGE = "https://cdn.pixabay.com/photo/2012/04/01/17/29/box-23649_960_720.png";
 const ASSET_HOST = baseURL.replace(/api\/v1\/?$/, "");
 
@@ -265,7 +266,7 @@ const styles = StyleSheet.create({
     listContent: {
         paddingHorizontal: 14,
         paddingTop: 8,
-        paddingBottom: 132,
+        paddingBottom: 132 + TAB_BAR_SPACE,
     },
     itemCard: {
         backgroundColor: colors.white,
@@ -399,7 +400,7 @@ const styles = StyleSheet.create({
     },
     footer: {
         position: "absolute",
-        bottom: 0,
+        bottom: TAB_BAR_SPACE,
         left: 0,
         right: 0,
         borderTopWidth: 1,

@@ -38,6 +38,20 @@ const isCloudinaryConfigured = () =>
       && process.env.CLOUDINARY_API_SECRET
   );
 
+const parseBoolean = (value, fallback = false) => {
+  if (typeof value === "boolean") {
+    return value;
+  }
+
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase();
+    if (normalized === "true") return true;
+    if (normalized === "false") return false;
+  }
+
+  return fallback;
+};
+
 const uploadImageToCloudinary = async (file) => {
   if (!isCloudinaryConfigured()) {
     throw new Error("Cloudinary is not configured. Set Cloudinary environment variables.");
@@ -111,7 +125,7 @@ router.post('/', uploadOptions.single("image"), async (req, res) => {
       email: req.body.email,
       passwordHash: bcrypt.hashSync(req.body.password, 10),
       phone: req.body.phone,
-      isAdmin: req.body.isAdmin,
+      isAdmin: parseBoolean(req.body.isAdmin, false),
       street: req.body.street,
       apartment: req.body.apartment,
       zip: req.body.zip,
@@ -150,7 +164,7 @@ router.post('/register', uploadOptions.single("image"), async (req, res) => {
       email: req.body.email,
       passwordHash: bcrypt.hashSync(req.body.password, 10),
       phone: req.body.phone,
-      isAdmin: req.body.isAdmin,
+      isAdmin: parseBoolean(req.body.isAdmin, false),
       street: req.body.street,
       apartment: req.body.apartment,
       zip: req.body.zip,
@@ -200,7 +214,7 @@ router.put('/:id', uploadOptions.single("image"), async (req, res) => {
         email: req.body.email,
         passwordHash: newPassword,
         phone: req.body.phone,
-        isAdmin: req.body.isAdmin,
+        isAdmin: parseBoolean(req.body.isAdmin, userExist?.isAdmin || false),
         street: req.body.street,
         apartment: req.body.apartment,
         zip: req.body.zip,

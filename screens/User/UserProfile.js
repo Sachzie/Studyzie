@@ -1,5 +1,5 @@
 import React, { useContext, useState, useCallback } from "react";
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, Image } from "react-native";
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, Image, Alert, Platform } from "react-native";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
@@ -10,6 +10,16 @@ import { Ionicons } from "@expo/vector-icons";
 
 import * as ImagePicker from "expo-image-picker";
 import Toast from "react-native-toast-message";
+import mime from "mime";
+
+const isLocalUri = (value) => /^(file|content|ph):\/\//i.test(value || "");
+
+const normalizeLocalUri = (uri) => {
+    if (!uri) return "";
+    if (!uri.startsWith("file:")) return uri;
+    if (uri.startsWith("file:///")) return uri;
+    return `file:///${uri.replace(/^file:\/*/, "")}`;
+};
 
 const UserProfile = () => {
     const context = useContext(AuthGlobal);
@@ -73,9 +83,15 @@ const UserProfile = () => {
         }, [context?.stateUser?.isAuthenticated, context?.stateUser?.user])
     );
 
-    const handleUpdateAvatar = async () => {
+    const openImageLibrary = async () => {
         const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
         if (permission.status !== "granted") {
+            Toast.show({
+                topOffset: 60,
+                type: "error",
+                text1: "Permission required",
+                text2: "Please allow media access to upload a photo.",
+            });
             return;
         }
 
@@ -83,27 +99,108 @@ const UserProfile = () => {
             mediaTypes: ImagePicker.MediaTypeOptions?.Images ?? 'Images',
             allowsEditing: true,
             aspect: [1, 1],
-            quality: 0.5,
-            base64: true,
+            quality: 0.6,
         });
 
-        if (!result.canceled && result.assets?.[0]?.base64) {
-            const base64Image = `data:image/jpeg;base64,${result.assets[0].base64}`;
-            updateUserAvatar(base64Image);
+        if (!result.canceled && result.assets?.[0]?.uri) {
+            updateUserAvatar(result.assets[0].uri);
         }
     };
 
-    const updateUserAvatar = async (newImage) => {
+    const openCamera = async () => {
+        if (Platform.OS === "web") {
+            Toast.show({
+                topOffset: 60,
+                type: "info",
+                text1: "Camera not available",
+                text2: "Use a mobile device to take a photo.",
+            });
+            return;
+        }
+
+        const permission = await ImagePicker.requestCameraPermissionsAsync();
+        if (permission.status !== "granted") {
+            Toast.show({
+                topOffset: 60,
+                type: "error",
+                text1: "Permission required",
+                text2: "Please allow camera access to take a photo.",
+            });
+            return;
+        }
+
+        const result = await ImagePicker.launchCameraAsync({
+            mediaTypes: ImagePicker.MediaTypeOptions?.Images ?? 'Images',
+            allowsEditing: true,
+            aspect: [1, 1],
+            quality: 0.6,
+        });
+
+        if (!result.canceled && result.assets?.[0]?.uri) {
+            updateUserAvatar(result.assets[0].uri);
+        }
+    };
+
+    const handleUpdateAvatar = () => {
+        Alert.alert(
+            "Update Photo",
+            "Choose a photo source",
+            [
+                { text: "Upload Photo", onPress: openImageLibrary },
+                { text: "Use Camera", onPress: openCamera },
+                { text: "Cancel", style: "cancel" },
+            ]
+        );
+    };
+
+    const updateUserAvatar = async (newImageUri) => {
+        if (!newImageUri || !isLocalUri(newImageUri)) {
+            Toast.show({
+                topOffset: 60,
+                type: "error",
+                text1: "Invalid image",
+                text2: "Please select a valid photo.",
+            });
+            return;
+        }
+
         setUpdatingAvatar(true);
         try {
             const token = await AsyncStorage.getItem("jwt");
             const userId = userProfile?._id || userProfile?.id || context?.stateUser?.user?.userId;
-            
-            const response = await axios.put(`${baseURL}users/${userId}`, {
-                ...userProfile,
-                image: newImage
-            }, {
-                headers: { Authorization: `Bearer ${token}` }
+            if (!userId) {
+                Toast.show({
+                    topOffset: 60,
+                    type: "error",
+                    text1: "Update Failed",
+                    text2: "User profile not found.",
+                });
+                return;
+            }
+
+            const payload = new FormData();
+            const safeUri = normalizeLocalUri(newImageUri);
+            payload.append("image", {
+                uri: safeUri,
+                type: mime.getType(safeUri) || "image/jpeg",
+                name: safeUri.split("/").pop() || `avatar-${Date.now()}.jpg`,
+            });
+
+            payload.append("name", userProfile?.name || "");
+            payload.append("email", userProfile?.email || "");
+            payload.append("phone", userProfile?.phone || "");
+            payload.append("isAdmin", String(Boolean(userProfile?.isAdmin)));
+            payload.append("street", userProfile?.street || "");
+            payload.append("apartment", userProfile?.apartment || "");
+            payload.append("zip", userProfile?.zip || "");
+            payload.append("city", userProfile?.city || "");
+            payload.append("country", userProfile?.country || "");
+
+            const response = await axios.put(`${baseURL}users/${userId}`, payload, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    "Content-Type": "multipart/form-data",
+                }
             });
 
             if (response.status === 200) {

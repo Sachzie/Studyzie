@@ -93,6 +93,18 @@ const OrderRow = ({ item }) => {
     const initials = parts.length > 1
         ? `${parts[0][0]}${parts[1][0]}`.toUpperCase()
         : userName.slice(0, 2).toUpperCase();
+    const orderItems = Array.isArray(item?.orderItems) ? item.orderItems : [];
+    const itemNames = orderItems
+        .map((orderItem) => {
+            const product = orderItem?.product || orderItem || {};
+            const name = product?.name || orderItem?.name || "Item";
+            const qty = Number(orderItem?.quantity) || 1;
+            return `${name} x${qty}`;
+        })
+        .filter(Boolean);
+    const itemsPreview = itemNames.length > 0
+        ? (itemNames.length > 2 ? `${itemNames.slice(0, 2).join(", ")} +${itemNames.length - 2} more` : itemNames.join(", "))
+        : "";
 
     return (
         <View style={styles.orderRow}>
@@ -109,6 +121,7 @@ const OrderRow = ({ item }) => {
                             day: "numeric",
                         })}
                     </Text>
+                    {itemsPreview ? <Text style={styles.orderItemsPreview}>{itemsPreview}</Text> : null}
                 </View>
             </View>
 
@@ -405,6 +418,12 @@ const styles = StyleSheet.create({
         marginTop: 2,
         color: "#9CA3AF",
         fontSize: 12,
+    },
+    orderItemsPreview: {
+        marginTop: 4,
+        color: "#6B7280",
+        fontSize: 12,
+        maxWidth: 200,
     },
     rowRight: {
         alignItems: "flex-end",

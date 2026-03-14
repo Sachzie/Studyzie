@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Image, ActivityIndicator } from "react-native";
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Image, ActivityIndicator, Platform } from "react-native";
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { useNavigation } from "@react-navigation/native";
 import Toast from "react-native-toast-message";
@@ -7,6 +7,16 @@ import * as ImagePicker from "expo-image-picker";
 import axios from "axios";
 import baseURL from "../assets/common/baseurl";
 import { Ionicons } from "@expo/vector-icons";
+import mime from "mime";
+
+const isLocalUri = (value) => /^(file|content|ph):\/\//i.test(value || "");
+
+const normalizeLocalUri = (uri) => {
+    if (!uri) return "";
+    if (!uri.startsWith("file:")) return uri;
+    if (uri.startsWith("file:///")) return uri;
+    return `file:///${uri.replace(/^file:\/*/, "")}`;
+};
 
 const Register = () => {
     const navigation = useNavigation();
@@ -15,13 +25,23 @@ const Register = () => {
     const [phone, setPhone] = useState("");
     const [password, setPassword] = useState("");
     const [avatarUri, setAvatarUri] = useState("");
-    const [avatarBase64, setAvatarBase64] = useState("");
     const [error, setError] = useState("");
     const [isLoading, setIsLoading] = useState(false);
 
-    const pickImage = async () => {
+    const setAvatar = (uri) => {
+        if (!uri) return;
+        setAvatarUri(uri);
+    };
+
+    const openImageLibrary = async () => {
         const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
         if (permission.status !== "granted") {
+            Toast.show({
+                topOffset: 60,
+                type: "error",
+                text1: "Permission required",
+                text2: "Please allow media access to upload a photo.",
+            });
             return;
         }
 
@@ -33,10 +53,41 @@ const Register = () => {
         });
 
         if (!result.canceled && result.assets?.[0]?.uri) {
-            setAvatarUri(result.assets[0].uri);
-            if (result.assets[0].base64) {
-                setAvatarBase64(`data:image/jpeg;base64,${result.assets[0].base64}`);
-            }
+            setAvatar(result.assets[0].uri);
+        }
+    };
+
+    const openCamera = async () => {
+        if (Platform.OS === "web") {
+            Toast.show({
+                topOffset: 60,
+                type: "info",
+                text1: "Camera not available",
+                text2: "Use a mobile device to take a photo.",
+            });
+            return;
+        }
+
+        const permission = await ImagePicker.requestCameraPermissionsAsync();
+        if (permission.status !== "granted") {
+            Toast.show({
+                topOffset: 60,
+                type: "error",
+                text1: "Permission required",
+                text2: "Please allow camera access to take a photo.",
+            });
+            return;
+        }
+
+        const result = await ImagePicker.launchCameraAsync({
+            mediaTypes: ImagePicker.MediaTypeOptions?.Images ?? 'Images',
+            allowsEditing: true,
+            aspect: [1, 1],
+            quality: 0.8,
+        });
+
+        if (!result.canceled && result.assets?.[0]?.uri) {
+            setAvatar(result.assets[0].uri);
         }
     };
 
@@ -48,17 +99,26 @@ const Register = () => {
 
         setError("");
         setIsLoading(true);
-        const payload = {
-            name: name.trim(),
-            email: email.trim().toLowerCase(),
-            password: password.trim(),
-            phone: phone.trim(),
-            isAdmin: false,
-            image: avatarBase64 || "",
-        };
+        const payload = new FormData();
+        payload.append("name", name.trim());
+        payload.append("email", email.trim().toLowerCase());
+        payload.append("password", password.trim());
+        payload.append("phone", phone.trim());
+        payload.append("isAdmin", "false");
+
+        if (avatarUri && isLocalUri(avatarUri)) {
+            const safeUri = normalizeLocalUri(avatarUri);
+            payload.append("image", {
+                uri: safeUri,
+                type: mime.getType(safeUri) || "image/jpeg",
+                name: safeUri.split("/").pop() || `user-${Date.now()}.jpg`,
+            });
+        }
 
         try {
-            const response = await axios.post(`${baseURL}users/register`, payload);
+            const response = await axios.post(`${baseURL}users/register`, payload, {
+                headers: { "Content-Type": "multipart/form-data" },
+            });
 
             if (response.status === 200 || response.status === 201) {
                 Toast.show({
@@ -99,16 +159,28 @@ const Register = () => {
             </View>
 
             <View style={styles.formContainer}>
-                <TouchableOpacity style={styles.avatarWrap} onPress={pickImage}>
-                    {avatarUri ? (
-                        <Image source={{ uri: avatarUri }} style={styles.avatarImage} />
-                    ) : (
-                        <View style={styles.avatarPlaceholder}>
-                            <Ionicons name="camera" size={24} color="#103B28" />
-                            <Text style={styles.avatarText}>Add Photo</Text>
-                        </View>
-                    )}
-                </TouchableOpacity>
+                <View style={styles.avatarBlock}>
+                    <TouchableOpacity style={styles.avatarWrap} onPress={openImageLibrary}>
+                        {avatarUri ? (
+                            <Image source={{ uri: avatarUri }} style={styles.avatarImage} />
+                        ) : (
+                            <View style={styles.avatarPlaceholder}>
+                                <Ionicons name="camera" size={24} color="#103B28" />
+                                <Text style={styles.avatarText}>Add Photo</Text>
+                            </View>
+                        )}
+                    </TouchableOpacity>
+                    <View style={styles.imageActions}>
+                        <TouchableOpacity style={styles.imageAction} onPress={openImageLibrary}>
+                            <Ionicons name="image-outline" size={16} color="#103B28" />
+                            <Text style={styles.imageActionText}>Upload</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={styles.imageAction} onPress={openCamera}>
+                            <Ionicons name="camera-outline" size={16} color="#103B28" />
+                            <Text style={styles.imageActionText}>Camera</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
 
                 <View style={styles.inputContainer}>
                     <TextInput
@@ -250,6 +322,36 @@ const styles = StyleSheet.create({
         color: "#103B28",
         fontWeight: "600",
         marginTop: 4,
+    },
+    avatarBlock: {
+        width: "100%",
+        alignItems: "center",
+    },
+    imageActions: {
+        flexDirection: "row",
+        justifyContent: "center",
+        flexWrap: "wrap",
+        gap: 10,
+        marginBottom: 16,
+        alignSelf: "center",
+    },
+    imageAction: {
+        flexDirection: "row",
+        alignItems: "center",
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 999,
+        backgroundColor: "#FFFFFF",
+        borderWidth: 1,
+        borderColor: "#E5E7EB",
+    },
+    imageActionText: {
+        marginLeft: 6,
+        fontSize: 12,
+        fontWeight: "700",
+        color: "#103B28",
+        letterSpacing: 0.3,
+        textTransform: "uppercase",
     },
     inputContainer: {
         marginBottom: 16,

@@ -47,6 +47,15 @@ const normalizeImageKey = (value) =>
         .replace(/\s+/g, "")
         .replace(/[^a-z0-9]/g, "");
 
+const isLocalUri = (value) => /^(file|content|ph):\/\//i.test(value || "");
+
+const normalizeLocalUri = (uri) => {
+    if (!uri) return "";
+    if (!uri.startsWith("file:")) return uri;
+    if (uri.startsWith("file:///")) return uri;
+    return `file:///${uri.replace(/^file:\/*/, "")}`;
+};
+
 const getImageKeyFromName = (name) => {
     const normalized = normalizeImageKey(name);
     if (normalized.includes("oilpastel")) return "oilpastel";
@@ -61,6 +70,7 @@ const getImageKeyFromName = (name) => {
 const resolveImageUri = (rawUri) => {
     if (!rawUri) return "";
     if (rawUri.startsWith("data:image")) return rawUri;
+    if (isLocalUri(rawUri)) return normalizeLocalUri(rawUri);
 
     if (/^https?:\/\//i.test(rawUri)) {
         return rawUri;
@@ -150,6 +160,13 @@ const ProductForm = (props) => {
         };
     }, [props?.route?.params?.item]);
 
+    const setSelectedImage = (uri) => {
+        if (!uri) return;
+        setMainImage(uri);
+        setImage(uri);
+        setImageError(false);
+    };
+
     const pickImage = async () => {
         const result = await ImagePicker.launchImageLibraryAsync({
             mediaTypes: ImagePicker.MediaTypeOptions.Images,
@@ -160,11 +177,45 @@ const ProductForm = (props) => {
 
         if (!result.canceled) {
             const uri = result.assets?.[0]?.uri;
-            if (uri) {
-                setMainImage(uri);
-                setImage(uri);
-                setImageError(false);
-            }
+            setSelectedImage(uri);
+        }
+    };
+
+    const captureImage = async () => {
+        if (Platform.OS === "web") {
+            Toast.show({
+                topOffset: 60,
+                type: "info",
+                text1: "Camera not available",
+                text2: "Use a mobile device to take a photo.",
+            });
+            return;
+        }
+
+        const { status: cameraStatus } = await ImagePicker.requestCameraPermissionsAsync();
+        const { status: libraryStatus } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+        if (cameraStatus !== "granted" || libraryStatus !== "granted") {
+            Toast.show({
+                topOffset: 60,
+                type: "error",
+                text1: "Permission required",
+                text2: "Please allow camera and media access to take a photo.",
+            });
+            return;
+        }
+
+        const result = await ImagePicker.launchCameraAsync({
+            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            allowsEditing: true,
+            aspect: [4, 3],
+            quality: 0.8,
+            saveToPhotos: true,
+        });
+
+        if (!result.canceled) {
+            const uri = result.assets?.[0]?.uri;
+            setSelectedImage(uri);
         }
     };
 
@@ -182,16 +233,13 @@ const ProductForm = (props) => {
         }
 
         const formData = new FormData();
-        const newImageUri =
-            image && image.startsWith("file:")
-                ? "file:///" + image.split("file:/").join("")
-                : null;
+        const localImageUri = isLocalUri(image) ? normalizeLocalUri(image) : "";
 
-        if (newImageUri && image !== item?.image) {
+        if (localImageUri && image !== item?.image) {
             formData.append("image", {
-                uri: newImageUri,
-                type: mime.getType(newImageUri) || "image/jpeg",
-                name: newImageUri.split("/").pop(),
+                uri: localImageUri,
+                type: mime.getType(localImageUri) || "image/jpeg",
+                name: localImageUri.split("/").pop() || `product-${Date.now()}.jpg`,
             });
         }
 
@@ -280,8 +328,18 @@ const ProductForm = (props) => {
                             resizeMode="cover"
                             onError={() => setImageError(true)}
                         />
-                        <TouchableOpacity onPress={pickImage} style={styles.imagePicker}>
+                        <TouchableOpacity onPress={captureImage} style={styles.imagePicker}>
                             <Ionicons name="camera-outline" color="#FFFFFF" size={18} />
+                        </TouchableOpacity>
+                    </View>
+                    <View style={styles.imageActions}>
+                        <TouchableOpacity style={styles.imageAction} onPress={pickImage}>
+                            <Ionicons name="image-outline" color="#111827" size={16} />
+                            <Text style={styles.imageActionText}>Upload Photo</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={styles.imageAction} onPress={captureImage}>
+                            <Ionicons name="camera-outline" color="#111827" size={16} />
+                            <Text style={styles.imageActionText}>Use Camera</Text>
                         </TouchableOpacity>
                     </View>
 
@@ -450,6 +508,30 @@ const styles = StyleSheet.create({
         borderRadius: 17,
         alignItems: "center",
         justifyContent: "center",
+    },
+    imageActions: {
+        flexDirection: "row",
+        justifyContent: "center",
+        flexWrap: "wrap",
+        marginBottom: 12,
+    },
+    imageAction: {
+        flexDirection: "row",
+        alignItems: "center",
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        borderRadius: 999,
+        borderWidth: 1,
+        borderColor: "#E5E7EB",
+        backgroundColor: "#FFFFFF",
+        marginHorizontal: 6,
+        marginVertical: 4,
+    },
+    imageActionText: {
+        marginLeft: 6,
+        fontSize: 12,
+        fontWeight: "600",
+        color: "#374151",
     },
     formGroup: {
         marginBottom: 12,

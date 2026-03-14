@@ -1,15 +1,19 @@
-import React, { useContext, useState, useCallback } from 'react';
-import { View, Text, StyleSheet, FlatList, StatusBar } from 'react-native';
+import React, { useContext, useState, useCallback, useMemo } from 'react';
+import { View, Text, StyleSheet, FlatList, StatusBar, TouchableOpacity } from 'react-native';
 import axios from 'axios';
 import { useFocusEffect } from '@react-navigation/native';
 import AuthGlobal from '../../backend/Context/Store/AuthGlobal';
 import baseURL from '../assets/common/baseurl';
 import OrderCard from '../Shared/OrderCard';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Ionicons } from "@expo/vector-icons";
 
 const MyOrders = (props) => {
     const context = useContext(AuthGlobal);
     const [orders, setOrders] = useState([]);
+    const [profile, setProfile] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [activeFilter, setActiveFilter] = useState("All");
 
     useFocusEffect(
         useCallback(() => {
@@ -24,6 +28,24 @@ const MyOrders = (props) => {
             const userId = context.stateUser.user.userId || context.stateUser.user.id || context.stateUser.user.sub; // Handle different JWT payloads
             
             setLoading(true);
+            const loadProfile = async () => {
+                try {
+                    const token = await AsyncStorage.getItem("jwt");
+                    if (!token || !userId) return;
+                    const response = await axios.get(`${baseURL}users/${userId}`, {
+                        headers: { Authorization: `Bearer ${token}` },
+                    });
+                    if (isActive) {
+                        setProfile(response.data);
+                    }
+                } catch (error) {
+                    if (isActive) {
+                        setProfile(null);
+                    }
+                }
+            };
+
+            loadProfile();
             axios
                 .get(`${baseURL}orders/get/userorders/${userId}`)
                 .then((res) => {
@@ -37,16 +59,55 @@ const MyOrders = (props) => {
 
             return () => {
                 setOrders([]);
+                setProfile(null);
             };
         }, [context.stateUser.isAuthenticated, props.navigation])
     );
+
+    const filteredOrders = useMemo(() => {
+        if (activeFilter === "All") return orders;
+        if (activeFilter === "Pending") {
+            return orders.filter((order) => String(order.status) === "3");
+        }
+        if (activeFilter === "Delivered") {
+            return orders.filter((order) => String(order.status) === "1");
+        }
+        if (activeFilter === "Cancelled") {
+            return orders.filter((order) => ["0", "4", "-1"].includes(String(order.status)));
+        }
+        return orders;
+    }, [orders, activeFilter]);
 
     return (
         <View style={styles.container}>
             <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
             <View style={styles.header}>
-                <Text style={styles.headerTitle}>My Orders</Text>
-                <Text style={styles.headerSubtitle}>Track your purchases</Text>
+                <View>
+                    <Text style={styles.headerTitle}>Orders</Text>
+                    <Text style={styles.headerSubtitle}>Your school supply purchases</Text>
+                </View>
+            </View>
+
+            <View style={styles.filterRow}>
+                {["All", "Pending", "Delivered", "Cancelled"].map((label) => (
+                    <TouchableOpacity
+                        key={label}
+                        style={[
+                            styles.filterChip,
+                            activeFilter === label && styles.filterChipActive,
+                        ]}
+                        onPress={() => setActiveFilter(label)}
+                    >
+                        <Text
+                            style={[
+                                styles.filterChipText,
+                                activeFilter === label && styles.filterChipTextActive,
+                            ]}
+                        >
+                            {label}
+                        </Text>
+                    </TouchableOpacity>
+                ))}
             </View>
 
             {loading ? (
@@ -55,9 +116,13 @@ const MyOrders = (props) => {
                 </View>
             ) : (
                 <FlatList
-                    data={orders}
+                    data={filteredOrders}
                     renderItem={({ item }) => (
-                        <OrderCard item={item} />
+                        <OrderCard
+                            item={item}
+                            avatarUrl={profile?.image || ""}
+                            displayName={profile?.name || ""}
+                        />
                     )}
                     keyExtractor={(item) => item.id}
                     contentContainerStyle={styles.listContent}
@@ -75,12 +140,12 @@ const MyOrders = (props) => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: "#F9FAFB",
+        backgroundColor: "#F4F7F5",
     },
     header: {
         backgroundColor: "#FFFFFF",
         paddingHorizontal: 20,
-        paddingTop: 20,
+        paddingTop: 24,
         paddingBottom: 20,
         borderBottomLeftRadius: 24,
         borderBottomRightRadius: 24,
@@ -90,21 +155,51 @@ const styles = StyleSheet.create({
         shadowRadius: 10,
         elevation: 5,
         zIndex: 10,
-        marginBottom: 10,
+        marginBottom: 12,
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
     },
     headerTitle: {
-        fontSize: 24,
+        fontSize: 26,
         fontWeight: "800",
-        color: "#103B28",
+        color: "#0F5D3A",
     },
     headerSubtitle: {
         fontSize: 14,
         color: "#6B7280",
         marginTop: 4,
     },
+    filterRow: {
+        flexDirection: "row",
+        flexWrap: "wrap",
+        paddingHorizontal: 16,
+        marginBottom: 8,
+        gap: 8,
+    },
+    filterChip: {
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 999,
+        borderWidth: 1,
+        borderColor: "#D1D5DB",
+        backgroundColor: "#FFFFFF",
+    },
+    filterChipActive: {
+        backgroundColor: "#0F5D3A",
+        borderColor: "#0F5D3A",
+    },
+    filterChipText: {
+        fontSize: 12,
+        fontWeight: "700",
+        color: "#374151",
+    },
+    filterChipTextActive: {
+        color: "#FFFFFF",
+    },
     listContent: {
         paddingHorizontal: 16,
-        paddingBottom: 80, // Space for bottom tab
+        paddingBottom: 110,
     },
     center: {
         alignItems: 'center',

@@ -1,12 +1,14 @@
 import React, { useContext } from "react";
 import { View } from "react-native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
+import { getFocusedRouteNameFromRoute } from "@react-navigation/native";
 
 import HomeNavigator from "./HomeNavigator";
 import CartNavigator from "./CartNavigator";
 import UserNavigator from "./UserNavigator";
 import AdminNavigator from "./AdminNavigator";
 import MyOrders from "../../screens/User/MyOrders";
+import Reviews from "../../screens/User/Reviews";
 import { Ionicons } from "@expo/vector-icons";
 import CartIcon from "../../screens/Shared/CartIcon";
 import AuthGlobal from "../Context/Store/AuthGlobal";
@@ -25,6 +27,30 @@ const Main = () => {
         return <AdminNavigator />
     }
 
+    const tabBarBaseStyle = {
+        position: 'absolute',
+        bottom: 20,
+        left: 20,
+        right: 20,
+        elevation: 5,
+        backgroundColor: '#ffffff',
+        borderRadius: 30,
+        height: 60,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 10,
+        borderTopWidth: 0,
+    };
+
+    const getCartTabBarStyle = (route) => {
+        const routeName = getFocusedRouteNameFromRoute(route) ?? "Cart";
+        if (["Checkout", "Shipping", "Payment", "Confirm"].includes(routeName)) {
+            return { display: 'none' };
+        }
+        return tabBarBaseStyle;
+    };
+
     return (
         <Tab.Navigator
             initialRouteName="Home"
@@ -33,21 +59,7 @@ const Main = () => {
                 tabBarHideOnKeyboard: true,
                 tabBarShowLabel: false,
                 tabBarActiveTintColor: '#103B28',
-                tabBarStyle: {
-                    position: 'absolute',
-                    bottom: 20,
-                    left: 20,
-                    right: 20,
-                    elevation: 5,
-                    backgroundColor: '#ffffff',
-                    borderRadius: 30,
-                    height: 60,
-                    shadowColor: '#000',
-                    shadowOffset: { width: 0, height: 4 },
-                    shadowOpacity: 0.15,
-                    shadowRadius: 10,
-                    borderTopWidth: 0,
-                },
+                tabBarStyle: tabBarBaseStyle,
                 tabBarItemStyle: {
                     padding: 5,
                     justifyContent: 'center',
@@ -88,10 +100,27 @@ const Main = () => {
             />
 
             <Tab.Screen
-                name="Cart Screen"
-                component={CartNavigator}
+                name="Ratings"
+                component={Reviews}
                 options={{
                     headerShown: false,
+                    tabBarIcon: ({ color }) => (
+                        <Ionicons
+                            name="star"
+                            style={{ position: "relative" }}
+                            color={color}
+                            size={28}
+                        />
+                    )
+                }}
+            />
+
+            <Tab.Screen
+                name="Cart Screen"
+                component={CartNavigator}
+                options={({ route }) => ({
+                    headerShown: false,
+                    tabBarStyle: getCartTabBarStyle(route),
                     tabBarIcon: ({ color }) => (
                         <View>
                             <Ionicons
@@ -103,7 +132,7 @@ const Main = () => {
                             <CartIcon />
                         </View>
                     )
-                }}
+                })}
             />
 
             <Tab.Screen

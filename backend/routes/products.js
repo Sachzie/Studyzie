@@ -1,8 +1,12 @@
 const express = require("express");
 const Category = require("../models/Category");
 const Product = require("../models/Product");
+const Order = require("../models/Order");
+const OrderItem = require("../models/OrderItem");
+const User = require("../models/User");
 const multer = require("multer");
 const { v2: cloudinary } = require("cloudinary");
+const { requireAdmin, requireAuth } = require("../middleware/auth");
 
 const FILE_TYPE_MAP = {
   "image/png": "png",
@@ -91,6 +95,26 @@ const deleteImageFromCloudinary = async (publicId) => {
   }
 };
 
+const getUserIdFromToken = (req) => req?.user?.userId || req?.user?.id || req?.user?.sub || "";
+
+const hasPurchasedProduct = async (userId, productId, deliveredOnly = false) => {
+  if (!userId || !productId) return false;
+  const query = deliveredOnly
+    ? { user: userId, status: "1" }
+    : { user: userId };
+  const orders = await Order.find(query).select("orderItems");
+  const orderItemIds = orders.flatMap((order) => order.orderItems || []);
+  if (!orderItemIds.length) return false;
+  const match = await OrderItem.exists({ _id: { $in: orderItemIds }, product: productId });
+  return Boolean(match);
+};
+
+const recalcProductRating = (product) => {
+  const total = product.reviews.reduce((sum, review) => sum + Number(review.rating || 0), 0);
+  product.numReviews = product.reviews.length;
+  product.rating = product.numReviews ? total / product.numReviews : 0;
+};
+
 router.get("/", async (req, res) => {
   try {
     const products = await Product.find()
@@ -115,7 +139,7 @@ router.get("/:id", async (req, res) => {
   }
 });
 
-router.post("/", uploadOptions.single("image"), async (req, res) => {
+router.post("/", requireAdmin, uploadOptions.single("image"), async (req, res) => {
   try {
     const file = req.file;
     if (!file) {
@@ -165,7 +189,7 @@ router.post("/", uploadOptions.single("image"), async (req, res) => {
   }
 });
 
-router.put("/:id", uploadOptions.single("image"), async (req, res) => {
+router.put("/:id", requireAdmin, uploadOptions.single("image"), async (req, res) => {
   try {
     const {
       name,
@@ -230,7 +254,91 @@ router.put("/:id", uploadOptions.single("image"), async (req, res) => {
   }
 });
 
-router.delete("/:id", async (req, res) => {
+router.post("/:id/reviews", requireAuth, async (req, res) => {
+  try {
+    const product = await Product.findById(req.params.id);
+    if (!product) {
+      return res.status(404).json({ message: "Product not found" });
+    }
+
+    const userId = getUserIdFromToken(req);
+    if (!userId) {
+      return res.status(401).json({ message: "Invalid user token" });
+    }
+
+    const purchased = await hasPurchasedProduct(userId, product._id, true);
+    if (!purchased) {
+      return res.status(403).json({ message: "You can only review delivered products." });
+    }
+
+    const existing = product.reviews.find((review) => review.user.toString() === userId);
+    if (existing) {
+      return res.status(400).json({ message: "Review already exists. Update your review instead." });
+    }
+
+    const rating = Number(req.body.rating);
+    if (!rating || rating < 1 || rating > 5) {
+      return res.status(400).json({ message: "Rating must be between 1 and 5." });
+    }
+
+    const reviewer = await User.findById(userId).select("name");
+    const review = {
+      user: userId,
+      name: reviewer?.name || "Studyzie User",
+      rating,
+      comment: (req.body.comment || "").toString().trim(),
+    };
+
+    product.reviews.push(review);
+    recalcProductRating(product);
+    await product.save();
+
+    return res.status(201).json(product);
+  } catch (error) {
+    return res.status(500).json({ message: error.message || "Failed to add review" });
+  }
+});
+
+router.put("/:id/reviews", requireAuth, async (req, res) => {
+  try {
+    const product = await Product.findById(req.params.id);
+    if (!product) {
+      return res.status(404).json({ message: "Product not found" });
+    }
+
+    const userId = getUserIdFromToken(req);
+    if (!userId) {
+      return res.status(401).json({ message: "Invalid user token" });
+    }
+
+    const purchased = await hasPurchasedProduct(userId, product._id, true);
+    if (!purchased) {
+      return res.status(403).json({ message: "You can only review delivered products." });
+    }
+
+    const review = product.reviews.find((r) => r.user.toString() === userId);
+    if (!review) {
+      return res.status(404).json({ message: "Review not found. Create one first." });
+    }
+
+    const rating = Number(req.body.rating);
+    if (!rating || rating < 1 || rating > 5) {
+      return res.status(400).json({ message: "Rating must be between 1 and 5." });
+    }
+
+    review.rating = rating;
+    review.comment = (req.body.comment || "").toString().trim();
+    review.updatedAt = new Date();
+    recalcProductRating(product);
+    await product.save();
+
+    return res.json(product);
+  } catch (error) {
+    return res.status(500).json({ message: error.message || "Failed to update review" });
+  }
+});
+
+router.delete("/:id", requireAdmin, async (req, res) => {
   try {
     const product = await Product.findByIdAndDelete(req.params.id);
     if (!product) {
