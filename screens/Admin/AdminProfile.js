@@ -1,4 +1,4 @@
-import React, { useCallback, useContext, useState } from "react";
+import React, { useCallback, useContext } from "react";
 import {
     View,
     Text,
@@ -9,81 +9,76 @@ import {
     ScrollView,
 } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as ImagePicker from "expo-image-picker";
 import Toast from "react-native-toast-message";
-import axios from "axios";
 import { Ionicons } from "@expo/vector-icons";
+import { useDispatch, useSelector } from "react-redux";
 
 import AuthGlobal from "../../backend/Context/Store/AuthGlobal";
 import baseURL from "../assets/common/baseurl";
+import { fetchAdminProfile, updateAdminProfile } from "../../backend/Redux/Actions/userActions";
+import { getToken } from "../../backend/Context/Store/tokenStorage";
+
+const API_ORIGIN = baseURL.replace(/api\/v1\/?$/, "");
+
+const resolveAvatarUri = (rawUri) => {
+    if (!rawUri) return "";
+    if (rawUri.startsWith("data:image")) return rawUri;
+
+    if (/^https?:\/\//i.test(rawUri)) {
+        try {
+            const url = new URL(rawUri);
+            if (url.hostname === "localhost" || url.hostname === "127.0.0.1") {
+                return `${API_ORIGIN}${url.pathname}`;
+            }
+            return rawUri;
+        } catch (e) {
+            return rawUri;
+        }
+    }
+
+    if (rawUri.startsWith("/")) {
+        return `${API_ORIGIN}${rawUri}`;
+    }
+
+    return `${API_ORIGIN}/public/uploads/${rawUri}`;
+};
 
 const AdminProfile = ({ navigation }) => {
     const context = useContext(AuthGlobal);
-    const [profile, setProfile] = useState(null);
-    const [loading, setLoading] = useState(true);
-    const [updatingAvatar, setUpdatingAvatar] = useState(false);
+    const dispatch = useDispatch();
+    const usersState = useSelector((state) => state.users);
+    const profile = usersState.profile;
+    const loading = usersState.profileLoading;
+    const updatingAvatar = usersState.updating;
+    const isLoading = loading && !profile;
 
     useFocusEffect(
         useCallback(() => {
-            let isActive = true;
+            const userId =
+                context?.stateUser?.user?.userId ||
+                context?.stateUser?.user?.id ||
+                context?.stateUser?.user?.sub;
 
-            const loadProfile = async () => {
-                setLoading(true);
-                try {
-                    const token = await AsyncStorage.getItem("jwt");
-                    const userId =
-                        context?.stateUser?.user?.userId ||
-                        context?.stateUser?.user?.id ||
-                        context?.stateUser?.user?.sub;
+            if (!userId) return;
 
-                    if (!userId) {
-                        if (isActive) setProfile(null);
-                        return;
+            getToken().then((token) => {
+                if (token) {
+                    if (!profile || String(profile?.id || profile?._id) !== String(userId)) {
+                        dispatch(fetchAdminProfile(userId, token));
                     }
-
-                    const response = await axios.get(`${baseURL}users/${userId}`, {
-                        headers: { Authorization: `Bearer ${token}` },
-                    });
-
-                    if (isActive) {
-                        setProfile(response.data);
-                    }
-                } catch (error) {
-                    if (isActive) setProfile(null);
-                } finally {
-                    if (isActive) setLoading(false);
                 }
-            };
-
-            loadProfile();
-
-            return () => {
-                isActive = false;
-            };
-        }, [context?.stateUser?.user?.id, context?.stateUser?.user?.sub, context?.stateUser?.user?.userId])
+            });
+        }, [context?.stateUser?.user?.id, context?.stateUser?.user?.sub, context?.stateUser?.user?.userId, dispatch, profile])
     );
 
     const updateAvatar = async (newImage) => {
         if (!profile) return;
 
-        setUpdatingAvatar(true);
         try {
-            const token = await AsyncStorage.getItem("jwt");
+            const token = await getToken();
             const userId = profile.id || profile._id;
-
-            const response = await axios.put(
-                `${baseURL}users/${userId}`,
-                {
-                    ...profile,
-                    image: newImage,
-                },
-                {
-                    headers: { Authorization: `Bearer ${token}` },
-                }
-            );
-
-            setProfile(response.data);
+            await dispatch(updateAdminProfile(userId, { ...profile, image: newImage }, token));
             Toast.show({
                 topOffset: 60,
                 type: "success",
@@ -96,8 +91,6 @@ const AdminProfile = ({ navigation }) => {
                 text1: "Update failed",
                 text2: "Please try again.",
             });
-        } finally {
-            setUpdatingAvatar(false);
         }
     };
 
@@ -127,7 +120,7 @@ const AdminProfile = ({ navigation }) => {
         }
     };
 
-    if (loading) {
+    if (isLoading) {
         return (
             <View style={[styles.container, styles.center]}>
                 <ActivityIndicator size="large" color="#111827" />
@@ -138,6 +131,7 @@ const AdminProfile = ({ navigation }) => {
     const name = profile?.name || "Admin";
     const email = profile?.email || "No email";
     const phone = profile?.phone || "No phone";
+    const avatarImage = resolveAvatarUri(profile?.image || "");
 
     return (
         <View style={styles.container}>
@@ -152,8 +146,8 @@ const AdminProfile = ({ navigation }) => {
             <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
                 <View style={styles.profileCard}>
                     <View style={styles.avatarWrap}>
-                        {profile?.image ? (
-                            <Image source={{ uri: profile.image }} style={styles.avatarImage} />
+                        {avatarImage ? (
+                            <Image source={{ uri: avatarImage }} style={styles.avatarImage} />
                         ) : (
                             <Text style={styles.avatarText}>{name.charAt(0).toUpperCase()}</Text>
                         )}

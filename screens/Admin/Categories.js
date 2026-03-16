@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useState, useMemo, useEffect } from "react";
 import {
     View,
     Text,
@@ -11,41 +11,34 @@ import {
     Modal,
 } from "react-native";
 import axios from "axios";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import Toast from "react-native-toast-message";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
+import { useDispatch, useSelector } from "react-redux";
 
 import baseURL from "../assets/common/baseurl";
+import { fetchCategories } from "../../backend/Redux/Actions/productActions";
+import { getToken } from "../../backend/Context/Store/tokenStorage";
 
 const Categories = ({ navigation }) => {
-    const [categories, setCategories] = useState([]);
     const [categoryName, setCategoryName] = useState("");
-    const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [token, setToken] = useState("");
     const [isEditModalVisible, setIsEditModalVisible] = useState(false);
     const [isAddModalVisible, setIsAddModalVisible] = useState(false);
     const [currentCategory, setCurrentCategory] = useState(null);
     const [editedCategoryName, setEditedCategoryName] = useState("");
+    const dispatch = useDispatch();
+    const productsState = useSelector((state) => state.products);
+    const { categories, categoriesLoading } = productsState;
+    const loading = categoriesLoading && (categories || []).length === 0;
+    const safeCategories = useMemo(() => categories || [], [categories]);
 
-    const fetchCategories = useCallback(async () => {
-        try {
-            const response = await axios.get(`${baseURL}categories`);
-            setCategories(response.data || []);
-        } catch (error) {
-            setCategories([]);
-            Toast.show({
-                topOffset: 60,
-                type: "error",
-                text1: "Load failed",
-                text2: "Could not fetch categories.",
-            });
-        } finally {
-            setLoading(false);
+    useEffect(() => {
+        if (!categoriesLoading) {
             setRefreshing(false);
         }
-    }, []);
+    }, [categoriesLoading]);
 
     useFocusEffect(
         useCallback(() => {
@@ -54,21 +47,22 @@ const Categories = ({ navigation }) => {
             const init = async () => {
                 setLoading(true);
                 try {
-                    const jwt = await AsyncStorage.getItem("jwt");
+                    const jwt = await getToken();
                     if (isActive) setToken(jwt || "");
                 } catch (error) {
                     if (isActive) setToken("");
                 }
-                if (isActive) fetchCategories();
+                if (isActive && !safeCategories.length && !categoriesLoading) {
+                    dispatch(fetchCategories());
+                }
             };
 
             init();
 
             return () => {
                 isActive = false;
-                setCategories([]);
             };
-        }, [fetchCategories])
+        }, [categoriesLoading, dispatch, safeCategories.length])
     );
 
     const addCategory = async () => {
@@ -85,7 +79,7 @@ const Categories = ({ navigation }) => {
                     },
                 }
             );
-            setCategories((prev) => [response.data, ...prev]);
+            dispatch(fetchCategories());
             setCategoryName("");
             setIsAddModalVisible(false);
             Toast.show({
@@ -110,7 +104,7 @@ const Categories = ({ navigation }) => {
                     Authorization: `Bearer ${token}`,
                 },
             });
-            setCategories((prev) => prev.filter((item) => item.id !== id));
+            dispatch(fetchCategories());
             Toast.show({
                 topOffset: 60,
                 type: "success",
@@ -145,11 +139,7 @@ const Categories = ({ navigation }) => {
                     },
                 }
             );
-            setCategories((prev) =>
-                prev.map((item) =>
-                    item.id === currentCategory.id ? response.data : item
-                )
-            );
+            dispatch(fetchCategories());
             setIsEditModalVisible(false);
             setCurrentCategory(null);
             setEditedCategoryName("");
@@ -200,7 +190,7 @@ const Categories = ({ navigation }) => {
                     </TouchableOpacity>
                     <Text style={styles.headerTitle}>Manage Categories</Text>
                 </View>
-                <Text style={styles.headerSubtitle}>{categories.length} categories available</Text>
+                <Text style={styles.headerSubtitle}>{safeCategories.length} categories available</Text>
             </View>
 
             {loading ? (
@@ -209,13 +199,13 @@ const Categories = ({ navigation }) => {
                 </View>
             ) : (
                 <FlatList
-                    data={categories}
+                    data={safeCategories}
                     renderItem={renderItem}
                     keyExtractor={(item) => item.id}
                     refreshing={refreshing}
                     onRefresh={() => {
                         setRefreshing(true);
-                        fetchCategories();
+                        dispatch(fetchCategories());
                     }}
                     contentContainerStyle={styles.listContent}
                     ListEmptyComponent={

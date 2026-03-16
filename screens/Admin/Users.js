@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useMemo, useState, useEffect } from "react";
 import {
     View,
     Text,
@@ -13,10 +13,12 @@ import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
 import { Searchbar } from "react-native-paper";
 import axios from "axios";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import Toast from "react-native-toast-message";
+import { useDispatch, useSelector } from "react-redux";
 
 import baseURL from "../assets/common/baseurl";
+import { fetchUsers } from "../../backend/Redux/Actions/userActions";
+import { getToken } from "../../backend/Context/Store/tokenStorage";
 
 const FALLBACK_AVATAR = "https://cdn-icons-png.flaticon.com/512/149/149071.png";
 
@@ -27,57 +29,33 @@ const normalizeImageUri = (uri) => {
 };
 
 const Users = ({ navigation }) => {
-    const [userList, setUserList] = useState([]);
-    const [userFilter, setUserFilter] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const dispatch = useDispatch();
+    const usersState = useSelector((state) => state.users);
+    const { list: userList, loading } = usersState;
     const [refreshing, setRefreshing] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
     const [token, setToken] = useState("");
-
-    const fetchUsers = useCallback(
-        async (jwt) => {
-            try {
-                const res = await axios.get(`${baseURL}users`, {
-                    headers: { Authorization: `Bearer ${jwt}` },
-                });
-                setUserList(res.data || []);
-                setUserFilter(res.data || []);
-            } catch (error) {
-                setUserList([]);
-                setUserFilter([]);
-                Toast.show({
-                    topOffset: 60,
-                    type: "error",
-                    text1: "Load failed",
-                    text2: "Could not fetch users.",
-                });
-            } finally {
-                setLoading(false);
-                setRefreshing(false);
-            }
-        },
-        []
-    );
 
     useFocusEffect(
         useCallback(() => {
             let isActive = true;
 
             const init = async () => {
-                setLoading(true);
                 try {
-                    const jwt = await AsyncStorage.getItem("jwt");
+                    const jwt = await getToken();
                     if (!isActive) return;
                     setToken(jwt || "");
                     if (jwt) {
-                        fetchUsers(jwt);
+                        if (!userList.length && !loading) {
+                            dispatch(fetchUsers(jwt));
+                        }
                     } else {
-                        setLoading(false);
+                        setRefreshing(false);
                     }
                 } catch (error) {
                     if (isActive) {
                         setToken("");
-                        setLoading(false);
+                        setRefreshing(false);
                     }
                 }
             };
@@ -86,26 +64,13 @@ const Users = ({ navigation }) => {
 
             return () => {
                 isActive = false;
-                setUserList([]);
-                setUserFilter([]);
+                setSearchQuery("");
             };
-        }, [fetchUsers])
+        }, [dispatch, loading, userList.length])
     );
 
     const searchUser = (text) => {
         setSearchQuery(text);
-        if (!text.trim()) {
-            setUserFilter(userList);
-            return;
-        }
-
-        setUserFilter(
-            userList.filter((user) => {
-                const byName = user?.name?.toLowerCase().includes(text.toLowerCase());
-                const byEmail = user?.email?.toLowerCase().includes(text.toLowerCase());
-                return byName || byEmail;
-            })
-        );
     };
 
     const deleteUser = async (id) => {
@@ -114,18 +79,9 @@ const Users = ({ navigation }) => {
                 headers: { Authorization: `Bearer ${token}` },
             });
 
-            const updatedList = userList.filter((item) => item.id !== id);
-            setUserList(updatedList);
-            setUserFilter(
-                updatedList.filter((item) => {
-                    if (!searchQuery.trim()) return true;
-                    const q = searchQuery.toLowerCase();
-                    return (
-                        item?.name?.toLowerCase().includes(q) ||
-                        item?.email?.toLowerCase().includes(q)
-                    );
-                })
-            );
+            if (token) {
+                dispatch(fetchUsers(token));
+            }
 
             Toast.show({
                 topOffset: 60,
@@ -143,6 +99,22 @@ const Users = ({ navigation }) => {
     };
 
     const totalUsers = useMemo(() => userList.length, [userList.length]);
+    const isLoading = loading && userList.length === 0;
+    const userFilter = useMemo(() => {
+        if (!searchQuery.trim()) return userList;
+        const q = searchQuery.toLowerCase();
+        return userList.filter((user) => {
+            const byName = user?.name?.toLowerCase().includes(q);
+            const byEmail = user?.email?.toLowerCase().includes(q);
+            return byName || byEmail;
+        });
+    }, [searchQuery, userList]);
+
+    useEffect(() => {
+        if (!loading) {
+            setRefreshing(false);
+        }
+    }, [loading]);
 
     const renderItem = ({ item }) => (
         <View style={styles.card}>
@@ -199,7 +171,7 @@ const Users = ({ navigation }) => {
                 />
             </View>
 
-            {loading ? (
+            {isLoading ? (
                 <View style={styles.loaderWrap}>
                     <ActivityIndicator size="large" color="#111827" />
                 </View>
@@ -211,7 +183,11 @@ const Users = ({ navigation }) => {
                     refreshing={refreshing}
                     onRefresh={() => {
                         setRefreshing(true);
-                        fetchUsers(token);
+                        if (token) {
+                            dispatch(fetchUsers(token));
+                        } else {
+                            setRefreshing(false);
+                        }
                     }}
                     contentContainerStyle={styles.listContent}
                     ListEmptyComponent={

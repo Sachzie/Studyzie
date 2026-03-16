@@ -59,23 +59,24 @@ const CategoryFilter = (props) => {
 
 const styles = StyleSheet.create({
     scrollContent: {
-        paddingBottom: 0,
-        paddingLeft: 4, // Align with layout
+        paddingBottom: 2,
+        paddingLeft: 2,
     },
     row: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 12,
+        gap: 8,
     },
     pill: {
-        borderRadius: 20,
-        paddingHorizontal: 20,
-        paddingVertical: 10,
+        borderRadius: 999,
+        paddingHorizontal: 16,
+        paddingVertical: 8,
         borderWidth: 1,
-        borderColor: "transparent",
+        borderColor: "#E5E7EB",
+        backgroundColor: "#FFFFFF",
     },
     activePill: {
-        backgroundColor: "#103B28", // Dark Green active state
+        backgroundColor: "#103B28",
         borderColor: "#103B28",
         elevation: 2,
     },
@@ -85,7 +86,7 @@ const styles = StyleSheet.create({
     },
     pillText: {
         color: "#4B5563",
-        fontSize: 14,
+        fontSize: 13,
         fontWeight: "600",
     },
     activePillText: {

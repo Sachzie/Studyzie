@@ -1,15 +1,74 @@
-import React from "react";
+import React, { useContext, useEffect, useRef } from "react";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { Ionicons } from "@expo/vector-icons";
+import { useDispatch, useSelector } from "react-redux";
 
 import Dashboard from "../../screens/Admin/Dashboard";
 import Analytics from "../../screens/Admin/Analytics";
 import Orders from "../../screens/Admin/Orders";
 import AdminSettings from "../../screens/Admin/AdminSettings";
+import AuthGlobal from "../Context/Store/AuthGlobal";
+import { fetchProducts, fetchCategories } from "../Redux/Actions/productActions";
+import { fetchOrders } from "../Redux/Actions/orderActions";
+import { fetchUsers, fetchAdminProfile } from "../Redux/Actions/userActions";
+import { getToken } from "../Context/Store/tokenStorage";
 
 const Tab = createBottomTabNavigator();
 
 const AdminTabs = () => {
+    const dispatch = useDispatch();
+    const context = useContext(AuthGlobal);
+    const hasPrefetched = useRef(false);
+    const productsState = useSelector((state) => state.products);
+    const ordersState = useSelector((state) => state.orders);
+    const usersState = useSelector((state) => state.users);
+
+    useEffect(() => {
+        if (hasPrefetched.current) return;
+        hasPrefetched.current = true;
+
+        const prefetch = async () => {
+            const token = await getToken();
+            const userId =
+                context?.stateUser?.user?.userId ||
+                context?.stateUser?.user?.id ||
+                context?.stateUser?.user?.sub;
+
+            if (!productsState.items?.length && !productsState.loading) {
+                dispatch(fetchProducts());
+            }
+            if (!productsState.categories?.length && !productsState.categoriesLoading) {
+                dispatch(fetchCategories());
+            }
+            if (!ordersState.list?.length && !ordersState.loading) {
+                dispatch(fetchOrders());
+            }
+            if (token) {
+                if (!usersState.list?.length && !usersState.loading) {
+                    dispatch(fetchUsers(token));
+                }
+                if (userId) {
+                    dispatch(fetchAdminProfile(userId, token));
+                }
+            }
+        };
+
+        prefetch();
+    }, [
+        context?.stateUser?.user?.id,
+        context?.stateUser?.user?.sub,
+        context?.stateUser?.user?.userId,
+        dispatch,
+        ordersState.list?.length,
+        ordersState.loading,
+        productsState.categories?.length,
+        productsState.categoriesLoading,
+        productsState.items?.length,
+        productsState.loading,
+        usersState.list?.length,
+        usersState.loading,
+    ]);
+
     return (
         <Tab.Navigator
             initialRouteName="Home"

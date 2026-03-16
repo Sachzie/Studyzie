@@ -1,11 +1,11 @@
 import React, { useEffect, useReducer, useState } from "react";
 // import "core-js/stable/atob";
 import { jwtDecode } from "jwt-decode"
-import AsyncStorage from '@react-native-async-storage/async-storage'
 
 import AuthReducer from "../Reducers/Auth.reducer";
 import { setCurrentUser } from "../Actions/Auth.actions";
 import AuthGlobal from './AuthGlobal'
+import { getToken } from "./tokenStorage";
 
 const Auth = props => {
     // console.log(props.children)
@@ -20,7 +20,7 @@ const Auth = props => {
 
         const bootstrapAuth = async () => {
             try {
-                const token = await AsyncStorage.getItem("jwt");
+                const token = await getToken();
                 if (token && isMounted) {
                     const decoded = jwtDecode(token);
                     dispatch(setCurrentUser(decoded));

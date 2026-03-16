@@ -2,11 +2,11 @@ import React, { useEffect, useState } from "react";
 import { View, Text, StyleSheet, Image, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Picker } from "@react-native-picker/picker";
-import AsyncStorage from '@react-native-async-storage/async-storage'
 import axios from "axios";
 import baseURL from "../assets/common/baseurl";
 import { useNavigation } from '@react-navigation/native'
 import Toast from "react-native-toast-message";
+import { getToken } from "../../backend/Context/Store/tokenStorage";
 
 const API_ORIGIN = baseURL.replace(/api\/v1\/?$/, "");
 
@@ -53,7 +53,7 @@ const OrderCard = ({ item, update, avatarUrl, displayName }) => {
   const [showDetails, setShowDetails] = useState(false);
 
   useEffect(() => {
-    AsyncStorage.getItem("jwt")
+    getToken()
       .then((res) => {
         setToken(res);
       })

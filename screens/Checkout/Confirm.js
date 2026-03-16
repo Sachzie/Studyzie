@@ -1,15 +1,14 @@
-import React, { useState, useContext } from 'react'
+import React from 'react'
 import { View, StyleSheet, Dimensions, ScrollView } from "react-native";
 import { Surface, Avatar, Divider, Button, Text } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
 import { useDispatch } from 'react-redux'
-import AsyncStorage from "@react-native-async-storage/async-storage"
 import axios from 'axios';
 import baseURL from '../assets/common/baseurl';
-import AuthGlobal from '../../backend/Context/Store/AuthGlobal';
 import Toast from 'react-native-toast-message';
 import { clearCart } from '../../backend/Redux/Actions/cartActions';
 import { clearCartStorage } from '../../backend/Context/Store/CartStorage';
+import { getToken } from '../../backend/Context/Store/tokenStorage';
 
 var { width, height } = Dimensions.get("window");
 const API_ORIGIN = baseURL.replace(/api\/v1\/?$/, "");
@@ -37,8 +36,6 @@ const resolveImageUri = (rawUri) => {
 };
 
 const Confirm = (props) => {
-    const context = useContext(AuthGlobal)
-    const [token, setToken] = useState();
     const finalOrder = props.route.params;
     const dispatch = useDispatch()
     let navigation = useNavigation()
@@ -56,7 +53,7 @@ const Confirm = (props) => {
         }
 
         try {
-            const storedToken = await AsyncStorage.getItem("jwt");
+            const storedToken = await getToken();
             if (!storedToken) {
                 Toast.show({
                     topOffset: 60,
@@ -68,7 +65,6 @@ const Confirm = (props) => {
                 return;
             }
 
-            setToken(storedToken);
             const config = {
                 headers: {
                     Authorization: `Bearer ${storedToken}`

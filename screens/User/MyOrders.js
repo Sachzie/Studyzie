@@ -2,18 +2,20 @@ import React, { useContext, useState, useCallback, useMemo } from 'react';
 import { View, Text, StyleSheet, FlatList, StatusBar, TouchableOpacity } from 'react-native';
 import axios from 'axios';
 import { useFocusEffect } from '@react-navigation/native';
+import { useDispatch, useSelector } from 'react-redux';
 import AuthGlobal from '../../backend/Context/Store/AuthGlobal';
 import baseURL from '../assets/common/baseurl';
 import OrderCard from '../Shared/OrderCard';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Ionicons } from "@expo/vector-icons";
+import { fetchUserOrders } from '../../backend/Redux/Actions/orderActions';
+import { getToken } from '../../backend/Context/Store/tokenStorage';
 
 const MyOrders = (props) => {
     const context = useContext(AuthGlobal);
-    const [orders, setOrders] = useState([]);
     const [profile, setProfile] = useState(null);
-    const [loading, setLoading] = useState(true);
     const [activeFilter, setActiveFilter] = useState("All");
+    const dispatch = useDispatch();
+    const ordersState = useSelector((state) => state.orders);
+    const { userList: orders, userLoading: loading } = ordersState;
 
     useFocusEffect(
         useCallback(() => {
@@ -30,7 +32,7 @@ const MyOrders = (props) => {
             setLoading(true);
             const loadProfile = async () => {
                 try {
-                    const token = await AsyncStorage.getItem("jwt");
+                    const token = await getToken();
                     if (!token || !userId) return;
                     const response = await axios.get(`${baseURL}users/${userId}`, {
                         headers: { Authorization: `Bearer ${token}` },
@@ -46,22 +48,12 @@ const MyOrders = (props) => {
             };
 
             loadProfile();
-            axios
-                .get(`${baseURL}orders/get/userorders/${userId}`)
-                .then((res) => {
-                    setOrders(res.data);
-                    setLoading(false);
-                })
-                .catch((error) => {
-                    console.log(error);
-                    setLoading(false);
-                });
+            dispatch(fetchUserOrders(userId));
 
             return () => {
-                setOrders([]);
                 setProfile(null);
             };
-        }, [context.stateUser.isAuthenticated, props.navigation])
+        }, [context.stateUser.isAuthenticated, dispatch, props.navigation])
     );
 
     const filteredOrders = useMemo(() => {

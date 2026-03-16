@@ -10,12 +10,12 @@ import {
 } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import Toast from "react-native-toast-message";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 import { useNavigation } from "@react-navigation/native";
 
 import baseURL from "../assets/common/baseurl";
 import Error from "../Shared/Error";
+import { getToken } from "../../backend/Context/Store/tokenStorage";
 
 const UserForm = (props) => {
     const [name, setName] = useState("");
@@ -40,7 +40,7 @@ const UserForm = (props) => {
             setIsAdmin(routeItem.isAdmin || false);
         }
 
-        AsyncStorage.getItem("jwt")
+        getToken()
             .then((res) => setToken(res || ""))
             .catch(() => setToken(""));
 

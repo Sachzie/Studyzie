@@ -1,15 +1,16 @@
 import React, { useCallback, useState, useContext, useEffect, useRef } from "react";
-import { View, StyleSheet, ActivityIndicator, ScrollView } from "react-native";
+import { View, StyleSheet, ActivityIndicator, ScrollView, TouchableOpacity } from "react-native";
 import { Surface, Text, Searchbar, TextInput } from "react-native-paper";
 import { useFocusEffect } from "@react-navigation/native";
+import { useDispatch, useSelector } from "react-redux";
 import ProductList from "./ProductList";
 import CategoryFilter from "./CategoryFilter";
 import Banner from "../Shared/Banner";
 import baseURL from "../assets/common/baseurl";
-import axios from "axios";
 import colors from "../assets/common/colors";
 import Notification from "../../Shared/Notification";
 import AuthGlobal from "../../backend/Context/Store/AuthGlobal";
+import { fetchProducts, fetchCategories } from "../../backend/Redux/Actions/productActions";
 
 const API_ORIGIN = baseURL.replace(/api\/v1\/?$/, "");
 
@@ -178,6 +179,15 @@ const normalizeCategory = (item, index) => ({
 
 const ProductContainer = () => {
     const context = useContext(AuthGlobal);
+    const dispatch = useDispatch();
+    const productsState = useSelector((state) => state.products);
+    const {
+        items: storeProducts,
+        categories: storeCategories,
+        loading: productsLoading,
+        error: productsError,
+        categoriesLoading,
+    } = productsState;
     const [products, setProducts] = useState(LOCAL_PRODUCTS);
     const [productsCtg, setProductsCtg] = useState(LOCAL_PRODUCTS);
     const [categories, setCategories] = useState(LOCAL_CATEGORIES);
@@ -186,7 +196,6 @@ const ProductContainer = () => {
     const [selectedCategory, setSelectedCategory] = useState("all");
     const [minPrice, setMinPrice] = useState("");
     const [maxPrice, setMaxPrice] = useState("");
-    const [loading, setLoading] = useState(false);
     const [notice, setNotice] = useState("");
     const [notification, setNotification] = useState({ visible: false, message: '', type: '' });
     const justLoggedIn = useRef(true);
@@ -263,14 +272,24 @@ const ProductContainer = () => {
         setMaxPrice(sanitizePriceInput(value));
     };
 
+    const resetFilters = () => {
+        setKeyword("");
+        setSelectedCategory("all");
+        setMinPrice("");
+        setMaxPrice("");
+        setActive(-1);
+    };
+
+    const hasActiveFilters = Boolean(
+        keyword.trim() || selectedCategory !== "all" || minPrice || maxPrice
+    );
+
     useEffect(() => {
         applyFilters(products, keyword, selectedCategory, minPrice, maxPrice);
     }, [applyFilters, products, keyword, selectedCategory, minPrice, maxPrice]);
 
     useFocusEffect(
         useCallback(() => {
-            let isActive = true;
-            setLoading(true);
             setNotice("");
             setActive(-1);
             setSelectedCategory("all");
@@ -278,59 +297,41 @@ const ProductContainer = () => {
             setMinPrice("");
             setMaxPrice("");
 
-            Promise.allSettled([
-                axios.get(`${baseURL}products`),
-                axios.get(`${baseURL}categories`),
-            ])
-                .then(([productResponse, categoryResponse]) => {
-                    if (!isActive) {
-                        return;
-                    }
-
-                    const apiProducts = productResponse.status === "fulfilled"
-                        ? productResponse.value.data.map(normalizeProduct)
-                        : [];
-
-                    const hasApiProducts = apiProducts.length > 0;
-                    const activeProducts = hasApiProducts ? apiProducts : LOCAL_PRODUCTS;
-                    setProducts(activeProducts);
-                    setProductsCtg(activeProducts);
-
-                    const apiCategories = categoryResponse.status === "fulfilled"
-                        ? categoryResponse.value.data.map(normalizeCategory)
-                        : [];
-
-                    const activeCategories = apiCategories.length > 0
-                        ? apiCategories
-                        : LOCAL_CATEGORIES;
-                    setCategories(activeCategories);
-
-                    if (productResponse.status === "rejected") {
-                        setNotice("Showing local products while the server is unavailable.");
-                    } else if (!hasApiProducts) {
-                        setNotice("No products in database yet. Showing local products.");
-                    }
-                })
-                .catch(() => {
-                    if (!isActive) {
-                        return;
-                    }
-                    setProducts(LOCAL_PRODUCTS);
-                    setProductsCtg(LOCAL_PRODUCTS);
-                    setCategories(LOCAL_CATEGORIES);
-                    setNotice("Showing local products while the server is unavailable.");
-                })
-                .finally(() => {
-                    if (isActive) {
-                        setLoading(false);
-                    }
-                });
-
-            return () => {
-                isActive = false;
-            };
-        }, [])
+            dispatch(fetchProducts());
+            dispatch(fetchCategories());
+        }, [dispatch])
     );
+
+    useEffect(() => {
+        const normalizedProducts = Array.isArray(storeProducts)
+            ? storeProducts.map(normalizeProduct)
+            : [];
+        const hasApiProducts = normalizedProducts.length > 0;
+        const activeProducts = hasApiProducts ? normalizedProducts : LOCAL_PRODUCTS;
+        setProducts(activeProducts);
+        setProductsCtg(activeProducts);
+
+        if (productsLoading) {
+            return;
+        }
+
+        if (productsError) {
+            setNotice("Showing local products while the server is unavailable.");
+        } else if (!hasApiProducts) {
+            setNotice("No products in database yet. Showing local products.");
+        } else {
+            setNotice("");
+        }
+    }, [storeProducts, productsError, productsLoading]);
+
+    useEffect(() => {
+        const normalizedCategories = Array.isArray(storeCategories)
+            ? storeCategories.map(normalizeCategory)
+            : [];
+        setCategories(normalizedCategories.length > 0 ? normalizedCategories : LOCAL_CATEGORIES);
+    }, [storeCategories]);
+
+    const loading = productsLoading || categoriesLoading;
 
     return (
         <Surface style={styles.screen}>
@@ -341,8 +342,12 @@ const ProductContainer = () => {
                 onClose={() => setNotification({ ...notification, visible: false })} 
             />
             <View style={styles.header}>
+                <View style={styles.headerTextWrap}>
+                    <Text style={styles.headerTitle}>Studyzie Store</Text>
+                    <Text style={styles.headerSubtitle}>Search and filter by category or price</Text>
+                </View>
                 <Searchbar
-                    placeholder="Search school supplies"
+                    placeholder="Search by name, brand, or description"
                     onChangeText={searchProduct}
                     value={keyword}
                     onClearIconPress={onClearSearch}
@@ -356,58 +361,82 @@ const ProductContainer = () => {
             <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
                 <Banner />
                 <View style={styles.mainBody}>
-                    <View style={styles.categorySection}>
-                        <CategoryFilter
-                            categories={categories}
-                            categoryFilter={changeCtg}
-                            productsCtg={productsCtg}
-                            active={active}
-                            setActive={setActive}
-                        />
-                    </View>
-
-                    <View style={styles.priceSection}>
-                        <View style={styles.priceHeader}>
-                            <Text style={styles.filterLabel}>Price Range</Text>
-                            <Text style={styles.filterHint}>Filter results by price</Text>
+                    <View style={styles.filterCard}>
+                        <View style={styles.filterHeader}>
+                            <View>
+                                <Text style={styles.filterTitle}>Filters</Text>
+                                <Text style={styles.filterHint}>Refine by category and price</Text>
+                            </View>
+                            <TouchableOpacity
+                                style={[styles.clearButton, !hasActiveFilters && styles.clearButtonDisabled]}
+                                onPress={resetFilters}
+                                disabled={!hasActiveFilters}
+                            >
+                                <Text style={[styles.clearButtonText, !hasActiveFilters && styles.clearButtonTextDisabled]}>
+                                    Clear
+                                </Text>
+                            </TouchableOpacity>
                         </View>
-                        <View style={styles.priceRow}>
-                            <TextInput
-                                mode="outlined"
-                                dense
-                                label="Min"
-                                value={minPrice}
-                                onChangeText={updateMinPrice}
-                                keyboardType="numeric"
-                                style={styles.priceInput}
-                                contentStyle={styles.priceInputContent}
-                                outlineColor={colors.light}
-                                activeOutlineColor={colors.primary}
-                                textColor={colors.text}
-                                placeholder="0"
+
+                        <View style={styles.categorySection}>
+                            <Text style={styles.filterLabel}>Category</Text>
+                            <CategoryFilter
+                                categories={categories}
+                                categoryFilter={changeCtg}
+                                productsCtg={productsCtg}
+                                active={active}
+                                setActive={setActive}
                             />
-                            <Text style={styles.priceDivider}>to</Text>
-                            <TextInput
-                                mode="outlined"
-                                dense
-                                label="Max"
-                                value={maxPrice}
-                                onChangeText={updateMaxPrice}
-                                keyboardType="numeric"
-                                style={styles.priceInput}
-                                contentStyle={styles.priceInputContent}
-                                outlineColor={colors.light}
-                                activeOutlineColor={colors.primary}
-                                textColor={colors.text}
-                                placeholder="999"
-                            />
+                        </View>
+
+                        <View style={styles.priceSection}>
+                            <View style={styles.priceHeader}>
+                                <Text style={styles.filterLabel}>Price Range</Text>
+                                <Text style={styles.priceHint}>Filter results by price</Text>
+                            </View>
+                            <View style={styles.priceRow}>
+                                <TextInput
+                                    mode="outlined"
+                                    dense
+                                    label="Min"
+                                    value={minPrice}
+                                    onChangeText={updateMinPrice}
+                                    keyboardType="numeric"
+                                    style={styles.priceInput}
+                                    contentStyle={styles.priceInputContent}
+                                    outlineColor={colors.light}
+                                    activeOutlineColor={colors.primary}
+                                    textColor={colors.text}
+                                    placeholder="0"
+                                />
+                                <Text style={styles.priceDivider}>to</Text>
+                                <TextInput
+                                    mode="outlined"
+                                    dense
+                                    label="Max"
+                                    value={maxPrice}
+                                    onChangeText={updateMaxPrice}
+                                    keyboardType="numeric"
+                                    style={styles.priceInput}
+                                    contentStyle={styles.priceInputContent}
+                                    outlineColor={colors.light}
+                                    activeOutlineColor={colors.primary}
+                                    textColor={colors.text}
+                                    placeholder="999"
+                                />
+                            </View>
                         </View>
                     </View>
 
                     {notice ? <Text style={styles.notice}>{notice}</Text> : null}
 
                     <View style={styles.productsHeader}>
-                        <Text style={styles.sectionTitle}>Featured Products</Text>
+                        <Text style={styles.sectionTitle}>Products</Text>
+                        <View style={styles.resultsBadge}>
+                            <Text style={styles.resultsText}>
+                                {productsCtg.length} of {products.length}
+                            </Text>
+                        </View>
                     </View>
 
                     {loading ? (
@@ -443,8 +472,8 @@ const styles = StyleSheet.create({
     header: {
         backgroundColor: colors.white,
         paddingHorizontal: 16,
-        paddingTop: 50, // Safe area top
-        paddingBottom: 16,
+        paddingTop: 46, // Safe area top
+        paddingBottom: 18,
         borderBottomLeftRadius: 24,
         borderBottomRightRadius: 24,
         shadowColor: colors.black,
@@ -455,22 +484,19 @@ const styles = StyleSheet.create({
         marginBottom: 16,
         zIndex: 10,
     },
-    headerContent: {
-        marginBottom: 12,
-        alignItems: 'center',
+    headerTextWrap: {
+        marginBottom: 10,
     },
     headerTitle: {
-        fontSize: 22,
+        fontSize: 24,
         fontWeight: "800",
-        color: colors.primary,
-        letterSpacing: 0.5,
+        color: colors.text,
     },
     headerSubtitle: {
-        fontSize: 12,
+        fontSize: 13,
         color: colors.textLight,
         fontWeight: "600",
-        textTransform: "uppercase",
-        letterSpacing: 1,
+        marginTop: 2,
     },
     scrollContent: {
         paddingBottom: 100, // Extra space for floating nav
@@ -492,21 +518,26 @@ const styles = StyleSheet.create({
         alignSelf: 'center', // Fix text alignment in react-native-paper Searchbar
     },
     categorySection: {
-        marginBottom: 20,
+        marginBottom: 12,
     },
-    priceSection: {
-        marginBottom: 18,
-        padding: 12,
+    filterCard: {
         backgroundColor: colors.white,
-        borderRadius: 12,
+        borderRadius: 16,
+        padding: 14,
         borderWidth: 1,
         borderColor: colors.light,
+        marginBottom: 14,
     },
-    priceHeader: {
+    filterHeader: {
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
-        marginBottom: 10,
+        marginBottom: 12,
+    },
+    filterTitle: {
+        fontSize: 16,
+        fontWeight: "800",
+        color: colors.text,
     },
     filterLabel: {
         fontSize: 14,
@@ -514,6 +545,40 @@ const styles = StyleSheet.create({
         color: colors.text,
     },
     filterHint: {
+        fontSize: 12,
+        color: colors.textLight,
+        marginTop: 2,
+    },
+    clearButton: {
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 999,
+        borderWidth: 1,
+        borderColor: colors.light,
+        backgroundColor: colors.inputBg,
+    },
+    clearButtonText: {
+        fontSize: 12,
+        fontWeight: "700",
+        color: colors.text,
+    },
+    clearButtonDisabled: {
+        opacity: 0.5,
+    },
+    clearButtonTextDisabled: {
+        color: colors.textLight,
+    },
+    priceSection: {
+        marginBottom: 2,
+        marginTop: 4,
+    },
+    priceHeader: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        marginBottom: 8,
+    },
+    priceHint: {
         fontSize: 12,
         color: colors.textLight,
     },
@@ -545,6 +610,19 @@ const styles = StyleSheet.create({
         fontSize: 20,
         fontWeight: "700",
         color: colors.text,
+    },
+    resultsBadge: {
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        borderRadius: 999,
+        backgroundColor: colors.white,
+        borderWidth: 1,
+        borderColor: colors.light,
+    },
+    resultsText: {
+        fontSize: 12,
+        fontWeight: "700",
+        color: colors.textLight,
     },
     listContainer: {
         flexDirection: "row",

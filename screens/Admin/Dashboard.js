@@ -10,12 +10,15 @@ import {
     Dimensions,
 } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
+import { useDispatch, useSelector } from "react-redux";
 import { LineChart } from "react-native-chart-kit";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import axios from "axios";
 
 import baseURL from "../assets/common/baseurl";
 import AuthGlobal from "../../backend/Context/Store/AuthGlobal";
+import { fetchProducts, fetchCategories } from "../../backend/Redux/Actions/productActions";
+import { fetchOrders } from "../../backend/Redux/Actions/orderActions";
+import { fetchUsers, fetchAdminProfile } from "../../backend/Redux/Actions/userActions";
+import { getToken } from "../../backend/Context/Store/tokenStorage";
 
 const { width } = Dimensions.get("window");
 
@@ -45,6 +48,31 @@ const chartConfig = {
     fillShadowGradientTo: "#F3F4F6",
     fillShadowGradientFromOpacity: 0.16,
     fillShadowGradientToOpacity: 0.04,
+};
+
+const API_ORIGIN = baseURL.replace(/api\/v1\/?$/, "");
+
+const resolveAvatarUri = (rawUri) => {
+    if (!rawUri) return "";
+    if (rawUri.startsWith("data:image")) return rawUri;
+
+    if (/^https?:\/\//i.test(rawUri)) {
+        try {
+            const url = new URL(rawUri);
+            if (url.hostname === "localhost" || url.hostname === "127.0.0.1") {
+                return `${API_ORIGIN}${url.pathname}`;
+            }
+            return rawUri;
+        } catch (e) {
+            return rawUri;
+        }
+    }
+
+    if (rawUri.startsWith("/")) {
+        return `${API_ORIGIN}${rawUri}`;
+    }
+
+    return `${API_ORIGIN}/public/uploads/${rawUri}`;
 };
 
 const calculateRevenueData = (orders = []) => {
@@ -103,67 +131,66 @@ const StatCard = ({ value, title, progress, accentColor, dark, onPress }) => (
 
 const Dashboard = ({ navigation }) => {
     const context = useContext(AuthGlobal);
-    const [products, setProducts] = useState([]);
-    const [orders, setOrders] = useState([]);
-    const [users, setUsers] = useState([]);
-    const [adminProfile, setAdminProfile] = useState(null);
-    const [loading, setLoading] = useState(true);
+    const dispatch = useDispatch();
+    const productsState = useSelector((state) => state.products);
+    const ordersState = useSelector((state) => state.orders);
+    const usersState = useSelector((state) => state.users);
+    const products = productsState.items || [];
+    const orders = ordersState.list || [];
+    const users = usersState.list || [];
+    const adminProfile = usersState.profile;
+    const loading =
+        (productsState.loading || ordersState.loading || usersState.loading || usersState.profileLoading)
+        && (products.length === 0 && orders.length === 0 && users.length === 0);
     const [activePeriod, setActivePeriod] = useState("Weekly");
 
     useFocusEffect(
         useCallback(() => {
-            let isActive = true;
+            const userId =
+                context?.stateUser?.user?.userId ||
+                context?.stateUser?.user?.id ||
+                context?.stateUser?.user?.sub;
 
-            const fetchData = async () => {
-                setLoading(true);
-                try {
-                    const token = await AsyncStorage.getItem("jwt");
-                    const config = token
-                        ? {
-                            headers: { Authorization: `Bearer ${token}` },
+            if (!products.length && !productsState.loading) {
+                dispatch(fetchProducts());
+            }
+            if (!productsState.categories?.length && !productsState.categoriesLoading) {
+                dispatch(fetchCategories());
+            }
+            if (!orders.length && !ordersState.loading) {
+                dispatch(fetchOrders());
+            }
+            if (!users.length && !usersState.loading) {
+                getToken().then((token) => {
+                    if (token) {
+                        dispatch(fetchUsers(token));
+                        if (userId && !adminProfile) {
+                            dispatch(fetchAdminProfile(userId, token));
                         }
-                        : undefined;
-                    const userId =
-                        context?.stateUser?.user?.userId ||
-                        context?.stateUser?.user?.id ||
-                        context?.stateUser?.user?.sub;
-
-                    const [productsRes, ordersRes, usersRes] = await Promise.allSettled([
-                        axios.get(`${baseURL}products`),
-                        axios.get(`${baseURL}orders`),
-                        config ? axios.get(`${baseURL}users`, config) : Promise.resolve({ data: [] }),
-                    ]);
-                    const currentUserRes =
-                        config && userId
-                            ? await axios.get(`${baseURL}users/${userId}`, config)
-                            : null;
-
-                    if (!isActive) return;
-
-                    setProducts(productsRes.status === "fulfilled" ? productsRes.value.data : []);
-                    setOrders(ordersRes.status === "fulfilled" ? ordersRes.value.data : []);
-                    setUsers(usersRes.status === "fulfilled" ? usersRes.value.data : []);
-                    setAdminProfile(currentUserRes?.data || null);
-                } catch (error) {
-                    if (isActive) {
-                        setProducts([]);
-                        setOrders([]);
-                        setUsers([]);
-                        setAdminProfile(null);
                     }
-                } finally {
-                    if (isActive) {
-                        setLoading(false);
+                });
+            } else if (userId && !adminProfile) {
+                getToken().then((token) => {
+                    if (token) {
+                        dispatch(fetchAdminProfile(userId, token));
                     }
-                }
-            };
-
-            fetchData();
-
-            return () => {
-                isActive = false;
-            };
-        }, [context?.stateUser?.user?.id, context?.stateUser?.user?.sub, context?.stateUser?.user?.userId])
+                });
+            }
+        }, [
+            adminProfile,
+            context?.stateUser?.user?.id,
+            context?.stateUser?.user?.sub,
+            context?.stateUser?.user?.userId,
+            dispatch,
+            orders.length,
+            ordersState.loading,
+            products.length,
+            productsState.loading,
+            productsState.categories?.length,
+            productsState.categoriesLoading,
+            users.length,
+            usersState.loading,
+        ])
     );
 
     const totalSales = useMemo(
@@ -174,14 +201,15 @@ const Dashboard = ({ navigation }) => {
     const chartData = useMemo(() => calculateRevenueData(orders), [orders]);
 
     const avatarLetter = (adminProfile?.name || "A").charAt(0).toUpperCase();
+    const avatarImage = resolveAvatarUri(adminProfile?.image || "");
 
     return (
         <View style={styles.container}>
             <View style={styles.header}>
                 <Text style={styles.headerTitle}>Dashboard</Text>
                 <View style={styles.avatar}>
-                    {adminProfile?.image ? (
-                        <Image source={{ uri: adminProfile.image }} style={styles.avatarImage} />
+                    {avatarImage ? (
+                        <Image source={{ uri: avatarImage }} style={styles.avatarImage} />
                     ) : (
                         <Text style={styles.avatarInitial}>{avatarLetter}</Text>
                     )}

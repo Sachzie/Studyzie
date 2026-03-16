@@ -10,13 +10,14 @@ import {
     ActivityIndicator,
 } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import axios from "axios";
+import { useDispatch, useSelector } from "react-redux";
 import Toast from "react-native-toast-message";
 import { Ionicons } from "@expo/vector-icons";
 
 import AuthGlobal from "../../backend/Context/Store/AuthGlobal";
 import baseURL from "../assets/common/baseurl";
+import { fetchReviewables, submitReview as submitReviewAction } from "../../backend/Redux/Actions/reviewActions";
+import { getToken } from "../../backend/Context/Store/tokenStorage";
 import a4Img from "../Picures/a4.jpg";
 import ballpenImg from "../Picures/ballpen.jpg";
 import notebookImg from "../Picures/notebook.jpg";
@@ -108,43 +109,16 @@ const findUserReview = (reviews, userId) => {
 
 const Reviews = ({ navigation }) => {
     const context = useContext(AuthGlobal);
-    const [products, setProducts] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const dispatch = useDispatch();
+    const reviewsState = useSelector((state) => state.reviews);
+    const { reviewables: products, loading, savingId } = reviewsState;
     const [expandedId, setExpandedId] = useState("");
     const [drafts, setDrafts] = useState({});
-    const [savingId, setSavingId] = useState("");
 
     const userId = context?.stateUser?.user?.userId
         || context?.stateUser?.user?.id
         || context?.stateUser?.user?.sub
         || "";
-
-    const fetchOrders = useCallback(async () => {
-        if (!userId) return;
-        setLoading(true);
-        try {
-            const response = await axios.get(`${baseURL}orders/get/userorders/${userId}`);
-            const orders = (response.data || []).filter((order) => String(order?.status) === "1");
-            const map = new Map();
-
-            orders.forEach((order) => {
-                (order?.orderItems || []).forEach((orderItem) => {
-                    const product = orderItem?.product || orderItem;
-                    const id = getProductId(product);
-                    if (!id) return;
-                    if (!map.has(id)) {
-                        map.set(id, { ...product, _id: id });
-                    }
-                });
-            });
-
-            setProducts(Array.from(map.values()));
-        } catch (error) {
-            setProducts([]);
-        } finally {
-            setLoading(false);
-        }
-    }, [userId]);
 
     useFocusEffect(
         useCallback(() => {
@@ -153,8 +127,8 @@ const Reviews = ({ navigation }) => {
                 navigation.navigate("User", { screen: "Login" });
                 return;
             }
-            fetchOrders();
-        }, [context?.stateUser?.isAuthenticated, fetchOrders, navigation])
+            dispatch(fetchReviewables(userId));
+        }, [context?.stateUser?.isAuthenticated, dispatch, navigation, userId])
     );
 
     const updateDraft = (productId, patch) => {
@@ -170,18 +144,18 @@ const Reviews = ({ navigation }) => {
     const submitReview = async (product, existingReview) => {
         const productId = getProductId(product);
         const draft = drafts[productId] || {};
-        if (!draft.rating || draft.rating < 1 || draft.rating > 5) {
-            Toast.show({
-                topOffset: 60,
-                type: "error",
-                text1: "Rating required",
+            if (!draft.rating || draft.rating < 1 || draft.rating > 5) {
+                Toast.show({
+                    topOffset: 60,
+                    type: "error",
+                    text1: "Rating required",
                 text2: "Please select a rating between 1 and 5.",
             });
             return;
         }
 
         try {
-            const token = await AsyncStorage.getItem("jwt");
+            const token = await getToken();
             if (!token) {
                 Toast.show({
                     topOffset: 60,
@@ -192,21 +166,12 @@ const Reviews = ({ navigation }) => {
                 return;
             }
 
-            setSavingId(productId);
             const payload = {
                 rating: draft.rating,
                 comment: (draft.comment || "").trim(),
             };
 
-            if (existingReview) {
-                await axios.put(`${baseURL}products/${productId}/reviews`, payload, {
-                    headers: { Authorization: `Bearer ${token}` },
-                });
-            } else {
-                await axios.post(`${baseURL}products/${productId}/reviews`, payload, {
-                    headers: { Authorization: `Bearer ${token}` },
-                });
-            }
+            await dispatch(submitReviewAction(productId, payload, token, Boolean(existingReview)));
 
             Toast.show({
                 topOffset: 60,
@@ -215,7 +180,7 @@ const Reviews = ({ navigation }) => {
                 text2: "Thanks for sharing your feedback!",
             });
             setExpandedId("");
-            await fetchOrders();
+            dispatch(fetchReviewables(userId));
         } catch (error) {
             Toast.show({
                 topOffset: 60,
@@ -223,8 +188,6 @@ const Reviews = ({ navigation }) => {
                 text1: "Review failed",
                 text2: error?.response?.data?.message || "Please try again.",
             });
-        } finally {
-            setSavingId("");
         }
     };
 

@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useMemo, useState, useEffect } from "react";
 import {
     View,
     Text,
@@ -13,42 +13,24 @@ import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { Searchbar } from "react-native-paper";
 import { SwipeListView } from "react-native-swipe-list-view";
 import axios from "axios";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import Toast from "react-native-toast-message";
+import { useDispatch, useSelector } from "react-redux";
 
 import baseURL from "../assets/common/baseurl";
 import ListItem from "./ListItem";
+import { fetchProducts } from "../../backend/Redux/Actions/productActions";
+import { getToken } from "../../backend/Context/Store/tokenStorage";
 
 const { height } = Dimensions.get("window");
 
 const Products = () => {
-    const [productList, setProductList] = useState([]);
-    const [productFilter, setProductFilter] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const dispatch = useDispatch();
+    const productsState = useSelector((state) => state.products);
+    const { items: productList, loading } = productsState;
     const [refreshing, setRefreshing] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
     const [token, setToken] = useState("");
     const navigation = useNavigation();
-
-    const loadProducts = useCallback(async () => {
-        try {
-            const response = await axios.get(`${baseURL}products`);
-            setProductList(response.data || []);
-            setProductFilter(response.data || []);
-        } catch (error) {
-            setProductList([]);
-            setProductFilter([]);
-            Toast.show({
-                type: "error",
-                text1: "Load failed",
-                text2: "Could not fetch products.",
-                topOffset: 60,
-            });
-        } finally {
-            setLoading(false);
-            setRefreshing(false);
-        }
-    }, []);
 
     useFocusEffect(
         useCallback(() => {
@@ -56,7 +38,7 @@ const Products = () => {
 
             const init = async () => {
                 try {
-                    const jwt = await AsyncStorage.getItem("jwt");
+                    const jwt = await getToken();
                     if (isActive) {
                         setToken(jwt || "");
                     }
@@ -67,8 +49,9 @@ const Products = () => {
                 }
 
                 if (isActive) {
-                    setLoading(true);
-                    loadProducts();
+                    if (!productList.length && !loading) {
+                        dispatch(fetchProducts());
+                    }
                 }
             };
 
@@ -76,30 +59,18 @@ const Products = () => {
 
             return () => {
                 isActive = false;
-                setProductList([]);
-                setProductFilter([]);
                 setSearchQuery("");
             };
-        }, [loadProducts])
+        }, [dispatch, loading, productList.length])
     );
 
     const searchProduct = (text) => {
         setSearchQuery(text);
-        if (!text.trim()) {
-            setProductFilter(productList);
-            return;
-        }
-
-        setProductFilter(
-            productList.filter((product) =>
-                product?.name?.toLowerCase().includes(text.toLowerCase())
-            )
-        );
     };
 
     const onRefresh = () => {
         setRefreshing(true);
-        loadProducts();
+        dispatch(fetchProducts());
     };
 
     const deleteProduct = async (id) => {
@@ -108,11 +79,7 @@ const Products = () => {
                 headers: { Authorization: `Bearer ${token}` },
             });
 
-            const updatedList = productList.filter((item) => item.id !== id);
-            setProductList(updatedList);
-            setProductFilter(updatedList.filter((item) =>
-                !searchQuery ? true : item?.name?.toLowerCase().includes(searchQuery.toLowerCase())
-            ));
+            dispatch(fetchProducts());
 
             Toast.show({
                 topOffset: 60,
@@ -128,6 +95,12 @@ const Products = () => {
             });
         }
     };
+
+    useEffect(() => {
+        if (!loading) {
+            setRefreshing(false);
+        }
+    }, [loading]);
 
     const renderHiddenItem = ({ item }) => (
         <View style={styles.hiddenContainer}>
@@ -147,6 +120,12 @@ const Products = () => {
     );
 
     const totalCount = useMemo(() => productList.length, [productList.length]);
+    const isLoading = loading && productList.length === 0;
+    const filteredProducts = useMemo(() => {
+        if (!searchQuery.trim()) return productList;
+        const q = searchQuery.toLowerCase();
+        return productList.filter((product) => product?.name?.toLowerCase().includes(q));
+    }, [productList, searchQuery]);
 
     return (
         <View style={styles.container}>
@@ -171,13 +150,13 @@ const Products = () => {
                 />
             </View>
 
-            {loading ? (
+            {isLoading ? (
                 <View style={styles.spinner}>
                     <ActivityIndicator size="large" color="#111827" />
                 </View>
             ) : (
                 <SwipeListView
-                    data={productFilter}
+                    data={filteredProducts}
                     renderItem={({ item }) => <ListItem item={item} />}
                     renderHiddenItem={renderHiddenItem}
                     disableRightSwipe

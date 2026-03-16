@@ -11,8 +11,8 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
+import { useDispatch, useSelector } from "react-redux";
 import { LineChart } from "react-native-chart-kit";
-import axios from "axios";
 import a4Img from "../Picures/a4.jpg";
 import ballpenImg from "../Picures/ballpen.jpg";
 import notebookImg from "../Picures/notebook.jpg";
@@ -21,6 +21,8 @@ import yellowpadImg from "../Picures/yellowpad.jpg";
 import oilpastelImg from "../Picures/oilpastel.png";
 
 import baseURL from "../assets/common/baseurl";
+import { fetchOrders } from "../../backend/Redux/Actions/orderActions";
+import { fetchProducts } from "../../backend/Redux/Actions/productActions";
 
 const { width } = Dimensions.get("window");
 const API_ORIGIN = baseURL.replace(/api\/v1\/?$/, "");
@@ -101,88 +103,124 @@ const chartConfig = {
     fillShadowGradientToOpacity: 0.04,
 };
 
-const buildWeeklyData = (orders = []) => {
+const buildChartData = (orders = [], period = "Weekly") => {
     const now = new Date();
-    const labels = ["S", "M", "T", "W", "T", "F", "S"];
-    const salesByDay = new Array(7).fill(0);
-    const countByDay = new Array(7).fill(0);
+    let labels = [];
+    let salesData = [];
+    let ordersData = [];
 
-    orders.forEach((order) => {
-        if (!order?.dateOrdered) return;
-        const orderedAt = new Date(order.dateOrdered);
-        const dayDiff = Math.floor((now - orderedAt) / (1000 * 60 * 60 * 24));
-        if (dayDiff < 0 || dayDiff > 6) return;
-        const index = orderedAt.getDay();
-        salesByDay[index] += Number(order.totalPrice || 0);
-        countByDay[index] += 1;
-    });
+    if (period === "Today") {
+        labels = ["4am", "8am", "12pm", "4pm", "8pm", "12am"];
+        salesData = new Array(6).fill(0);
+        ordersData = new Array(6).fill(0);
+        
+        orders.forEach((order) => {
+            if (!order.dateOrdered) return;
+            const date = new Date(order.dateOrdered);
+            // Robust check for same day
+            if (
+                date.getFullYear() === now.getFullYear() &&
+                date.getMonth() === now.getMonth() &&
+                date.getDate() === now.getDate()
+            ) {
+                const hour = date.getHours();
+                const idx = Math.min(5, Math.floor(hour / 4));
+                salesData[idx] += Number(order.totalPrice || 0);
+                ordersData[idx] += 1;
+            }
+        });
+    } else if (period === "Weekly") {
+        // Use Last 7 Days instead of Fixed Sun-Sat for better visibility
+        labels = [];
+        salesData = new Array(7).fill(0);
+        ordersData = new Array(7).fill(0);
+        
+        const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+        for (let i = 6; i >= 0; i--) {
+            const d = new Date(now);
+            d.setDate(now.getDate() - i);
+            labels.push(dayNames[d.getDay()]);
+        }
 
-    const normalizedCounts = countByDay.map((count) => count * 12 + 15);
-    const normalizedSales = salesByDay.map((sales) => Math.max(15, Math.min(60, Math.round(sales / 8) + 12)));
+        const sevenDaysAgo = new Date(now);
+        sevenDaysAgo.setDate(now.getDate() - 6);
+        sevenDaysAgo.setHours(0, 0, 0, 0);
 
+        orders.forEach((order) => {
+            if (!order.dateOrdered) return;
+            const date = new Date(order.dateOrdered);
+            if (date >= sevenDaysAgo) {
+                const dayDiff = Math.floor((now - date) / (1000 * 60 * 60 * 24));
+                if (dayDiff >= 0 && dayDiff <= 6) {
+                    const idx = 6 - dayDiff; // Map oldest to 0, today to 6
+                    salesData[idx] += Number(order.totalPrice || 0);
+                    ordersData[idx] += 1;
+                }
+            }
+        });
+    } else {
+        // Monthly - Last 4 Weeks
+        labels = ["W1", "W2", "W3", "W4"];
+        salesData = new Array(4).fill(0);
+        ordersData = new Array(4).fill(0);
+
+        orders.forEach((order) => {
+            if (!order.dateOrdered) return;
+            const date = new Date(order.dateOrdered);
+            if (date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear()) {
+                const day = date.getDate();
+                const weekIdx = Math.min(3, Math.floor((day - 1) / 7));
+                salesData[weekIdx] += Number(order.totalPrice || 0);
+                ordersData[weekIdx] += 1;
+            }
+        });
+    }
+
+    const safeOrdersData = ordersData.map(v => v || 0);
+    const maxOrders = Math.max(...safeOrdersData, 5);
+    
     return {
         labels,
         datasets: [
             {
-                data: normalizedCounts,
+                data: safeOrdersData,
                 color: (opacity = 1) => `rgba(17, 24, 39, ${opacity})`,
                 strokeWidth: 3,
             },
             {
-                data: normalizedSales,
+                data: salesData.map(s => (s / 1000) * (maxOrders / 4) || 0), 
                 color: (opacity = 1) => `rgba(156, 163, 175, ${opacity})`,
                 strokeWidth: 3,
             },
         ],
-        legend: ["Orders", "Sales"],
+        legend: ["Orders", "Sales (k)"],
     };
 };
 
 const resolveItemTag = (item) => {
-    if (item.isFeatured) return { text: "Sales +12%", color: "#059669" };
-    if (item.countInStock < 10) return { text: "Sales -9%", color: "#DC2626" };
-    return { text: "Sales +4%", color: "#2563EB" };
+    const sales = item.salesCount || 0;
+    if (sales > 20) return { text: "Best Seller", color: "#059669" };
+    if (sales > 10) return { text: "Hot", color: "#2563EB" };
+    if (sales > 0) return { text: "Growing", color: "#D97706" };
+    return { text: "New", color: "#6B7280" };
 };
 
 const Analytics = () => {
-    const [orders, setOrders] = useState([]);
-    const [products, setProducts] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const dispatch = useDispatch();
+    const productsState = useSelector((state) => state.products);
+    const ordersState = useSelector((state) => state.orders);
+    const orders = ordersState.list || [];
+    const products = productsState.items || [];
+    const loading =
+        (ordersState.loading || productsState.loading)
+        && (orders.length === 0 && products.length === 0);
     const [activePeriod, setActivePeriod] = useState("Weekly");
 
     useFocusEffect(
         useCallback(() => {
-            let isActive = true;
-
-            const fetchData = async () => {
-                setLoading(true);
-                try {
-                    const [ordersRes, productsRes] = await Promise.all([
-                        axios.get(`${baseURL}orders`),
-                        axios.get(`${baseURL}products`),
-                    ]);
-
-                    if (!isActive) return;
-                    setOrders(ordersRes.data || []);
-                    setProducts(productsRes.data || []);
-                } catch (error) {
-                    if (isActive) {
-                        setOrders([]);
-                        setProducts([]);
-                    }
-                } finally {
-                    if (isActive) {
-                        setLoading(false);
-                    }
-                }
-            };
-
-            fetchData();
-
-            return () => {
-                isActive = false;
-            };
-        }, [])
+            dispatch(fetchOrders());
+            dispatch(fetchProducts());
+        }, [dispatch])
     );
 
     const totalSales = useMemo(
@@ -196,16 +234,28 @@ const Analytics = () => {
     }, [orders.length, totalSales]);
 
     const trendingItems = useMemo(() => {
-        return [...products]
-            .sort((a, b) => {
-                if (a.isFeatured && !b.isFeatured) return -1;
-                if (!a.isFeatured && b.isFeatured) return 1;
-                return Number(b.price || 0) - Number(a.price || 0);
-            })
-            .slice(0, 4);
-    }, [products]);
+        const productSales = {};
+        orders.forEach(order => {
+            if (order.orderItems) {
+                order.orderItems.forEach(item => {
+                    const productId = item.product?.id || item.product?._id || item.product;
+                    if (productId) {
+                        productSales[productId] = (productSales[productId] || 0) + (item.quantity || 0);
+                    }
+                });
+            }
+        });
 
-    const chartData = useMemo(() => buildWeeklyData(orders), [orders]);
+        return [...products]
+            .map(p => ({
+                ...p,
+                salesCount: productSales[p.id] || productSales[p._id] || 0
+            }))
+            .sort((a, b) => b.salesCount - a.salesCount)
+            .slice(0, 4);
+    }, [products, orders]);
+
+    const chartData = useMemo(() => buildChartData(orders, activePeriod), [orders, activePeriod]);
 
     return (
         <View style={styles.container}>
@@ -319,7 +369,7 @@ const Analytics = () => {
                                             </Text>
                                         </View>
                                         <View style={styles.itemRight}>
-                                            <Text style={styles.itemValue}>{formatPeso(item.price, 0)}</Text>
+                                            <Text style={styles.itemValue}>{item.salesCount || 0} Sold</Text>
                                             <Text style={[styles.itemTag, { color: tag.color }]}>{tag.text}</Text>
                                         </View>
                                     </View>

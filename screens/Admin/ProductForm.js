@@ -13,10 +13,10 @@ import { Picker } from "@react-native-picker/picker";
 import { Ionicons } from "@expo/vector-icons";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import Toast from "react-native-toast-message";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 import * as ImagePicker from "expo-image-picker";
 import { useNavigation } from "@react-navigation/native";
+import { useDispatch, useSelector } from "react-redux";
 import mime from "mime";
 import a4Img from "../Picures/a4.jpg";
 import ballpenImg from "../Picures/ballpen.jpg";
@@ -27,6 +27,8 @@ import oilpastelImg from "../Picures/oilpastel.png";
 
 import baseURL from "../assets/common/baseurl";
 import Error from "../Shared/Error";
+import { fetchCategories } from "../../backend/Redux/Actions/productActions";
+import { getToken } from "../../backend/Context/Store/tokenStorage";
 
 const PLACEHOLDER_IMAGE = "https://dummyimage.com/300x300/e5e7eb/6b7280&text=Pick+Image";
 const API_ORIGIN = baseURL.replace(/api\/v1\/?$/, "");
@@ -84,6 +86,8 @@ const resolveImageUri = (rawUri) => {
 };
 
 const ProductForm = (props) => {
+    const dispatch = useDispatch();
+    const categories = useSelector((state) => state.products.categories) || [];
     const [pickerValue, setPickerValue] = useState("");
     const [brand, setBrand] = useState("");
     const [name, setName] = useState("");
@@ -92,7 +96,6 @@ const ProductForm = (props) => {
     const [image, setImage] = useState("");
     const [mainImage, setMainImage] = useState("");
     const [category, setCategory] = useState("");
-    const [categories, setCategories] = useState([]);
     const [token, setToken] = useState("");
     const [error, setError] = useState("");
     const [countInStock, setCountInStock] = useState("");
@@ -126,20 +129,13 @@ const ProductForm = (props) => {
             setCountInStock(routeItem.countInStock?.toString?.() || "");
         }
 
-        AsyncStorage.getItem("jwt")
+        getToken()
             .then((res) => setToken(res || ""))
             .catch(() => setToken(""));
 
-        axios
-            .get(`${baseURL}categories`)
-            .then((res) => setCategories(res.data || []))
-            .catch(() => {
-                Toast.show({
-                    topOffset: 60,
-                    type: "error",
-                    text1: "Could not load categories",
-                });
-            });
+        if (!categories.length) {
+            dispatch(fetchCategories());
+        }
 
         (async () => {
             if (Platform.OS !== "web") {
@@ -155,10 +151,7 @@ const ProductForm = (props) => {
             }
         })();
 
-        return () => {
-            setCategories([]);
-        };
-    }, [props?.route?.params?.item]);
+    }, [categories.length, dispatch, props?.route?.params?.item]);
 
     const setSelectedImage = (uri) => {
         if (!uri) return;

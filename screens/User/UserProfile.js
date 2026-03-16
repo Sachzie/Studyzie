@@ -1,12 +1,12 @@
 import React, { useContext, useState, useCallback } from "react";
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, Image, Alert, Platform } from "react-native";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 import baseURL from "../assets/common/baseurl";
 import AuthGlobal from "../../backend/Context/Store/AuthGlobal";
 import { logoutUser } from "../../backend/Context/Actions/Auth.actions";
 import { Ionicons } from "@expo/vector-icons";
+import { getToken } from "../../backend/Context/Store/tokenStorage";
 
 import * as ImagePicker from "expo-image-picker";
 import Toast from "react-native-toast-message";
@@ -43,7 +43,7 @@ const UserProfile = () => {
             const loadProfile = async () => {
                 setLoading(true);
                 try {
-                    const token = await AsyncStorage.getItem("jwt");
+                    const token = await getToken();
                     // Check if we have user ID in context
                     const userId = context?.stateUser?.user?.userId || context?.stateUser?.user?.id || context?.stateUser?.user?.sub;
                     
@@ -166,7 +166,7 @@ const UserProfile = () => {
 
         setUpdatingAvatar(true);
         try {
-            const token = await AsyncStorage.getItem("jwt");
+            const token = await getToken();
             const userId = userProfile?._id || userProfile?.id || context?.stateUser?.user?.userId;
             if (!userId) {
                 Toast.show({
@@ -226,7 +226,6 @@ const UserProfile = () => {
     };
 
     const handleLogout = () => {
-        AsyncStorage.removeItem("jwt");
         logoutUser(context.dispatch);
         navigation.navigate("Login");
     };

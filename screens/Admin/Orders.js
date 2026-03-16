@@ -7,15 +7,21 @@ import {
     TouchableOpacity,
     ActivityIndicator,
     Dimensions,
+    Modal,
+    Pressable,
+    Image,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
+import { useDispatch, useSelector } from "react-redux";
 import { BarChart } from "react-native-chart-kit";
-import axios from "axios";
 
 import baseURL from "../assets/common/baseurl";
+import { fetchOrders, updateOrderStatus as updateOrderStatusAction } from "../../backend/Redux/Actions/orderActions";
+import { getToken } from "../../backend/Context/Store/tokenStorage";
 
 const { width } = Dimensions.get("window");
+const API_ORIGIN = baseURL.replace(/api\/v1\/?$/, "");
 
 const periods = ["Monthly", "Weekly", "Today"];
 
@@ -24,6 +30,29 @@ const formatPeso = (value) =>
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
     })}`;
+
+const resolveAvatarUri = (rawUri) => {
+    if (!rawUri) return "";
+    if (rawUri.startsWith("data:image")) return rawUri;
+
+    if (/^https?:\/\//i.test(rawUri)) {
+        try {
+            const url = new URL(rawUri);
+            if (url.hostname === "localhost" || url.hostname === "127.0.0.1") {
+                return `${API_ORIGIN}${url.pathname}`;
+            }
+            return rawUri;
+        } catch (e) {
+            return rawUri;
+        }
+    }
+
+    if (rawUri.startsWith("/")) {
+        return `${API_ORIGIN}${rawUri}`;
+    }
+
+    return `${API_ORIGIN}/public/uploads/${rawUri}`;
+};
 
 const chartConfig = {
     backgroundGradientFrom: "#FFFFFF",
@@ -38,6 +67,13 @@ const chartConfig = {
     fillShadowGradientOpacity: 1,
     barPercentage: 0.65,
 };
+
+const statusOptions = [
+    { label: "Pending", value: "3", color: "#6B7280" },
+    { label: "Shipped", value: "2", color: "#2563EB" },
+    { label: "Delivered", value: "1", color: "#16A34A" },
+    { label: "Cancelled", value: "0", color: "#DC2626" },
+];
 
 const toStatusInfo = (statusCode) => {
     const code = String(statusCode);
@@ -86,7 +122,7 @@ const buildChartData = (orders) => {
     };
 };
 
-const OrderRow = ({ item }) => {
+const OrderRow = ({ item, onPressStatus, disabled }) => {
     const statusInfo = toStatusInfo(item.status);
     const userName = item?.user?.name || "Unknown User";
     const parts = userName.split(" ").filter(Boolean);
@@ -105,12 +141,17 @@ const OrderRow = ({ item }) => {
     const itemsPreview = itemNames.length > 0
         ? (itemNames.length > 2 ? `${itemNames.slice(0, 2).join(", ")} +${itemNames.length - 2} more` : itemNames.join(", "))
         : "";
+    const avatarImage = resolveAvatarUri(item?.user?.image || "");
 
     return (
         <View style={styles.orderRow}>
             <View style={styles.rowLeft}>
                 <View style={styles.avatar}>
-                    <Text style={styles.avatarText}>{initials}</Text>
+                    {avatarImage ? (
+                        <Image source={{ uri: avatarImage }} style={styles.avatarImage} />
+                    ) : (
+                        <Text style={styles.avatarText}>{initials}</Text>
+                    )}
                 </View>
                 <View>
                     <Text style={styles.customerName}>{userName}</Text>
@@ -127,42 +168,37 @@ const OrderRow = ({ item }) => {
 
             <View style={styles.rowRight}>
                 <Text style={styles.orderAmount}>+{formatPeso(item.totalPrice)}</Text>
-                <View style={[styles.statusPill, { backgroundColor: statusInfo.color }]}>
+                <TouchableOpacity
+                    onPress={() => onPressStatus(item)}
+                    disabled={disabled}
+                    style={[styles.statusPill, { backgroundColor: statusInfo.color, opacity: disabled ? 0.6 : 1 }]}
+                >
                     <Text style={styles.statusText}>{statusInfo.label}</Text>
-                </View>
+                </TouchableOpacity>
             </View>
         </View>
     );
 };
 
 const Orders = () => {
-    const [orders, setOrders] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const dispatch = useDispatch();
+    const ordersState = useSelector((state) => state.orders);
+    const {
+        list: orders,
+        loading,
+        updating,
+        updatingId,
+    } = ordersState;
     const [activePeriod, setActivePeriod] = useState("Weekly");
+    const [statusModalVisible, setStatusModalVisible] = useState(false);
+    const [selectedOrder, setSelectedOrder] = useState(null);
 
     useFocusEffect(
         useCallback(() => {
-            let isActive = true;
-
-            const fetchOrders = async () => {
-                setLoading(true);
-                try {
-                    const response = await axios.get(`${baseURL}orders`);
-                    if (!isActive) return;
-                    setOrders(response.data || []);
-                } catch (error) {
-                    if (isActive) setOrders([]);
-                } finally {
-                    if (isActive) setLoading(false);
-                }
-            };
-
-            fetchOrders();
-
-            return () => {
-                isActive = false;
-            };
-        }, [])
+            if (!orders.length && !loading) {
+                dispatch(fetchOrders());
+            }
+        }, [dispatch, loading, orders.length])
     );
 
     const visibleOrders = useMemo(
@@ -182,6 +218,35 @@ const Orders = () => {
     }, [visibleOrders]);
 
     const chartData = useMemo(() => buildChartData(visibleOrders), [visibleOrders]);
+    const isLoading = loading && orders.length === 0;
+
+    const openStatusModal = (order) => {
+        setSelectedOrder(order);
+        setStatusModalVisible(true);
+    };
+
+    const closeStatusModal = () => {
+        if (updating) return;
+        setStatusModalVisible(false);
+        setSelectedOrder(null);
+    };
+
+    const getOrderId = (order) => order?.id || order?._id;
+
+    const handleUpdateStatus = async (nextStatus) => {
+        if (!selectedOrder) return;
+        const orderId = getOrderId(selectedOrder);
+        if (!orderId) return;
+
+        try {
+            const token = await getToken();
+            await dispatch(updateOrderStatusAction(orderId, nextStatus, token));
+            closeStatusModal();
+        } catch (error) {
+            // Fallback: keep local state unchanged if update fails
+            closeStatusModal();
+        }
+    };
 
     return (
         <View style={styles.container}>
@@ -192,7 +257,7 @@ const Orders = () => {
                 </TouchableOpacity>
             </View>
 
-            {loading ? (
+            {isLoading ? (
                 <View style={styles.loaderWrap}>
                     <ActivityIndicator size="large" color="#111827" />
                 </View>
@@ -265,11 +330,67 @@ const Orders = () => {
                         {visibleOrders.length === 0 ? (
                             <Text style={styles.emptyText}>No orders found for this time range.</Text>
                         ) : (
-                            visibleOrders.map((order) => <OrderRow key={order.id} item={order} />)
+                            visibleOrders.map((order) => (
+                                <OrderRow
+                                    key={getOrderId(order)}
+                                    item={order}
+                                    onPressStatus={openStatusModal}
+                                    disabled={updating && updatingId === getOrderId(order)}
+                                />
+                            ))
                         )}
                     </View>
                 </ScrollView>
             )}
+
+            <Modal
+                transparent
+                visible={statusModalVisible}
+                animationType="fade"
+                onRequestClose={closeStatusModal}
+            >
+                <Pressable style={styles.modalOverlay} onPress={closeStatusModal}>
+                    <Pressable style={styles.modalCard} onPress={() => {}}>
+                        <View style={styles.modalHeader}>
+                            <Text style={styles.modalTitle}>Update Order Status</Text>
+                            <TouchableOpacity onPress={closeStatusModal} disabled={updating}>
+                                <Ionicons name="close" size={20} color="#111827" />
+                            </TouchableOpacity>
+                        </View>
+                        <Text style={styles.modalSubtitle}>
+                            {selectedOrder?.user?.name || "Unknown User"} • {formatPeso(selectedOrder?.totalPrice)}
+                        </Text>
+
+                    {statusOptions.map((option) => {
+                        const isActive = String(selectedOrder?.status) === option.value;
+                        return (
+                            <TouchableOpacity
+                                    key={option.value}
+                                    style={[
+                                        styles.statusOption,
+                                        isActive && styles.statusOptionActive,
+                                    ]}
+                                    onPress={() => handleUpdateStatus(option.value)}
+                                    disabled={updating}
+                                >
+                                    <View style={[styles.statusDot, { backgroundColor: option.color }]} />
+                                    <Text style={styles.statusOptionText}>{option.label}</Text>
+                                    {isActive ? (
+                                        <Ionicons name="checkmark-circle" size={18} color={option.color} />
+                                    ) : null}
+                                </TouchableOpacity>
+                            );
+                        })}
+
+                        {updating ? (
+                            <View style={styles.modalLoading}>
+                                <ActivityIndicator size="small" color="#111827" />
+                                <Text style={styles.modalLoadingText}>Updating status...</Text>
+                            </View>
+                        ) : null}
+                    </Pressable>
+                </Pressable>
+            </Modal>
         </View>
     );
 };
@@ -403,11 +524,17 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "center",
         marginRight: 10,
+        overflow: "hidden",
     },
     avatarText: {
         color: "#4B5563",
         fontSize: 13,
         fontWeight: "700",
+    },
+    avatarImage: {
+        width: "100%",
+        height: "100%",
+        borderRadius: 21,
     },
     customerName: {
         color: "#111827",
@@ -448,6 +575,73 @@ const styles = StyleSheet.create({
         color: "#6B7280",
         fontSize: 14,
         padding: 14,
+    },
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: "rgba(0,0,0,0.35)",
+        justifyContent: "center",
+        alignItems: "center",
+        padding: 20,
+    },
+    modalCard: {
+        width: "100%",
+        borderRadius: 16,
+        backgroundColor: "#FFFFFF",
+        padding: 16,
+    },
+    modalHeader: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        marginBottom: 6,
+    },
+    modalTitle: {
+        fontSize: 18,
+        fontWeight: "700",
+        color: "#111827",
+    },
+    modalSubtitle: {
+        fontSize: 12,
+        color: "#6B7280",
+        marginBottom: 12,
+    },
+    statusOption: {
+        flexDirection: "row",
+        alignItems: "center",
+        paddingVertical: 10,
+        paddingHorizontal: 12,
+        borderRadius: 10,
+        borderWidth: 1,
+        borderColor: "#E5E7EB",
+        marginBottom: 10,
+        backgroundColor: "#F9FAFB",
+        gap: 8,
+    },
+    statusOptionActive: {
+        borderColor: "#111827",
+        backgroundColor: "#F3F4F6",
+    },
+    statusOptionText: {
+        flex: 1,
+        fontSize: 14,
+        fontWeight: "600",
+        color: "#111827",
+    },
+    statusDot: {
+        width: 10,
+        height: 10,
+        borderRadius: 5,
+    },
+    modalLoading: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 8,
+        marginTop: 4,
+    },
+    modalLoadingText: {
+        fontSize: 12,
+        color: "#6B7280",
+        fontWeight: "600",
     },
 });
 
