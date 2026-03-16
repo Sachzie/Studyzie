@@ -45,7 +45,6 @@ const Categories = ({ navigation }) => {
             let isActive = true;
 
             const init = async () => {
-                setLoading(true);
                 try {
                     const jwt = await getToken();
                     if (isActive) setToken(jwt || "");

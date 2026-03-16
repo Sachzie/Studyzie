@@ -19,6 +19,7 @@ const MyOrders = (props) => {
 
     useFocusEffect(
         useCallback(() => {
+            let isActive = true;
             if (
                 context.stateUser.isAuthenticated === false ||
                 context.stateUser.isAuthenticated === null
@@ -27,9 +28,8 @@ const MyOrders = (props) => {
                 return;
             }
 
-            const userId = context.stateUser.user.userId || context.stateUser.user.id || context.stateUser.user.sub; // Handle different JWT payloads
+            const userId = context.stateUser.user.userId || context.stateUser.user.id || context.stateUser.user.sub; 
             
-            setLoading(true);
             const loadProfile = async () => {
                 try {
                     const token = await getToken();
@@ -51,6 +51,7 @@ const MyOrders = (props) => {
             dispatch(fetchUserOrders(userId));
 
             return () => {
+                isActive = false;
                 setProfile(null);
             };
         }, [context.stateUser.isAuthenticated, dispatch, props.navigation])
