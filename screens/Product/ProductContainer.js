@@ -1,6 +1,6 @@
 import React, { useCallback, useState, useContext, useEffect, useRef } from "react";
 import { View, StyleSheet, ActivityIndicator, ScrollView } from "react-native";
-import { Surface, Text, Searchbar } from "react-native-paper";
+import { Surface, Text, Searchbar, TextInput } from "react-native-paper";
 import { useFocusEffect } from "@react-navigation/native";
 import ProductList from "./ProductList";
 import CategoryFilter from "./CategoryFilter";
@@ -184,6 +184,8 @@ const ProductContainer = () => {
     const [active, setActive] = useState(-1);
     const [keyword, setKeyword] = useState("");
     const [selectedCategory, setSelectedCategory] = useState("all");
+    const [minPrice, setMinPrice] = useState("");
+    const [maxPrice, setMaxPrice] = useState("");
     const [loading, setLoading] = useState(false);
     const [notice, setNotice] = useState("");
     const [notification, setNotification] = useState({ visible: false, message: '', type: '' });
@@ -196,8 +198,24 @@ const ProductContainer = () => {
         }
     }, [context.stateUser.isAuthenticated]);
 
-    const applyFilters = useCallback((sourceProducts, searchText, categoryId) => {
+    const applyFilters = useCallback((sourceProducts, searchText, categoryId, minPriceInput, maxPriceInput) => {
+        const parsePrice = (value) => {
+            if (value === null || value === undefined) return null;
+            const trimmed = value.toString().trim();
+            if (!trimmed) return null;
+            const numberValue = Number(trimmed);
+            return Number.isFinite(numberValue) ? numberValue : null;
+        };
+
         const normalizedSearch = searchText.trim().toLowerCase();
+        let minValue = parsePrice(minPriceInput);
+        let maxValue = parsePrice(maxPriceInput);
+
+        if (minValue !== null && maxValue !== null && minValue > maxValue) {
+            const temp = minValue;
+            minValue = maxValue;
+            maxValue = temp;
+        }
 
         let filtered = sourceProducts;
         if (categoryId !== "all") {
@@ -212,23 +230,42 @@ const ProductContainer = () => {
             );
         }
 
+        if (minValue !== null) {
+            filtered = filtered.filter((item) => Number(item?.price) >= minValue);
+        }
+
+        if (maxValue !== null) {
+            filtered = filtered.filter((item) => Number(item?.price) <= maxValue);
+        }
+
         setProductsCtg(filtered);
     }, []);
 
     const searchProduct = (text) => {
         setKeyword(text);
-        applyFilters(products, text, selectedCategory);
     };
 
     const onClearSearch = () => {
         setKeyword("");
-        applyFilters(products, "", selectedCategory);
     };
 
     const changeCtg = (ctg) => {
         setSelectedCategory(ctg);
-        applyFilters(products, keyword, ctg);
     };
+
+    const sanitizePriceInput = (value) => value.replace(/[^0-9.]/g, "");
+
+    const updateMinPrice = (value) => {
+        setMinPrice(sanitizePriceInput(value));
+    };
+
+    const updateMaxPrice = (value) => {
+        setMaxPrice(sanitizePriceInput(value));
+    };
+
+    useEffect(() => {
+        applyFilters(products, keyword, selectedCategory, minPrice, maxPrice);
+    }, [applyFilters, products, keyword, selectedCategory, minPrice, maxPrice]);
 
     useFocusEffect(
         useCallback(() => {
@@ -238,6 +275,8 @@ const ProductContainer = () => {
             setActive(-1);
             setSelectedCategory("all");
             setKeyword("");
+            setMinPrice("");
+            setMaxPrice("");
 
             Promise.allSettled([
                 axios.get(`${baseURL}products`),
@@ -325,6 +364,44 @@ const ProductContainer = () => {
                             active={active}
                             setActive={setActive}
                         />
+                    </View>
+
+                    <View style={styles.priceSection}>
+                        <View style={styles.priceHeader}>
+                            <Text style={styles.filterLabel}>Price Range</Text>
+                            <Text style={styles.filterHint}>Filter results by price</Text>
+                        </View>
+                        <View style={styles.priceRow}>
+                            <TextInput
+                                mode="outlined"
+                                dense
+                                label="Min"
+                                value={minPrice}
+                                onChangeText={updateMinPrice}
+                                keyboardType="numeric"
+                                style={styles.priceInput}
+                                contentStyle={styles.priceInputContent}
+                                outlineColor={colors.light}
+                                activeOutlineColor={colors.primary}
+                                textColor={colors.text}
+                                placeholder="0"
+                            />
+                            <Text style={styles.priceDivider}>to</Text>
+                            <TextInput
+                                mode="outlined"
+                                dense
+                                label="Max"
+                                value={maxPrice}
+                                onChangeText={updateMaxPrice}
+                                keyboardType="numeric"
+                                style={styles.priceInput}
+                                contentStyle={styles.priceInputContent}
+                                outlineColor={colors.light}
+                                activeOutlineColor={colors.primary}
+                                textColor={colors.text}
+                                placeholder="999"
+                            />
+                        </View>
                     </View>
 
                     {notice ? <Text style={styles.notice}>{notice}</Text> : null}
@@ -416,6 +493,47 @@ const styles = StyleSheet.create({
     },
     categorySection: {
         marginBottom: 20,
+    },
+    priceSection: {
+        marginBottom: 18,
+        padding: 12,
+        backgroundColor: colors.white,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: colors.light,
+    },
+    priceHeader: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        marginBottom: 10,
+    },
+    filterLabel: {
+        fontSize: 14,
+        fontWeight: "700",
+        color: colors.text,
+    },
+    filterHint: {
+        fontSize: 12,
+        color: colors.textLight,
+    },
+    priceRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 10,
+    },
+    priceInput: {
+        flex: 1,
+        backgroundColor: colors.white,
+        height: 44,
+    },
+    priceInputContent: {
+        fontSize: 13,
+    },
+    priceDivider: {
+        fontSize: 12,
+        fontWeight: "600",
+        color: colors.textLight,
     },
     productsHeader: {
         flexDirection: 'row',
