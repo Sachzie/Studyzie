@@ -16,6 +16,9 @@
       "supportsTablet": true
     },
     "android": {
+      "package": "com.studyzie.app",
+      "versionCode": 1,
+      "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "foregroundImage": "./screens/assets/adaptive-icon.png",
         "backgroundColor": "#FFFDE7"
