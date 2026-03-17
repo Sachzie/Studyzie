@@ -5,6 +5,10 @@ import AuthGlobal from "../../backend/Context/Store/AuthGlobal";
 import { loginUser } from "../../backend/Context/Actions/Auth.actions";
 import { Ionicons } from "@expo/vector-icons";
 import Notification from "../../Shared/Notification";
+import * as Google from "expo-auth-session/providers/google";
+import * as WebBrowser from "expo-web-browser";
+
+WebBrowser.maybeCompleteAuthSession();
 
 const Login = () => {
     const context = useContext(AuthGlobal);
@@ -14,6 +18,39 @@ const Login = () => {
     const [password, setPassword] = useState("");
     const [notification, setNotification] = useState({ visible: false, message: '', type: '' });
     const [isLoading, setIsLoading] = useState(false);
+
+    const [request, response, promptAsync] = Google.useAuthRequest({
+        androidClientId: "389416302400-1fjocq4mkov74o6uaqr8h07dd0il0013.apps.googleusercontent.com",
+        iosClientId: "YOUR_IOS_CLIENT_ID",
+        webClientId: "389416302400-1fjocq4mkov74o6uaqr8h07dd0il0013.apps.googleusercontent.com",
+    }, {
+        scheme: "studyzie"
+    });
+
+    useEffect(() => {
+        if (response?.type === "success") {
+            const { authentication } = response;
+            handleGoogleLogin(authentication.accessToken);
+        }
+    }, [response]);
+
+    const handleGoogleLogin = async (token) => {
+        setIsLoading(true);
+        try {
+            // Here you would typically send the token to your backend
+            // for validation and to get a JWT from your own system.
+            // For now, we'll just show a notification.
+            setNotification({ 
+                visible: true, 
+                message: "Google Login successful! (Connecting to backend...)", 
+                type: "success" 
+            });
+        } catch (err) {
+            setNotification({ visible: true, message: "Google Login failed.", type: "error" });
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
     useEffect(() => {
         if (context?.stateUser?.isAuthenticated === true) {
@@ -110,7 +147,11 @@ const Login = () => {
                         <TouchableOpacity style={styles.socialButton}>
                             <Ionicons name="logo-facebook" size={24} color="#1877F2" />
                         </TouchableOpacity>
-                        <TouchableOpacity style={styles.socialButton}>
+                        <TouchableOpacity 
+                            style={[styles.socialButton, !request && styles.disabledButton]} 
+                            onPress={() => promptAsync()}
+                            disabled={!request}
+                        >
                             <Ionicons name="logo-google" size={24} color="#DB4437" />
                         </TouchableOpacity>
                         <TouchableOpacity style={styles.socialButton}>

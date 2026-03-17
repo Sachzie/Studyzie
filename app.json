@@ -2,6 +2,7 @@
   "expo": {
     "name": "Studyzie School Supplies",
     "slug": "studyzie-school-supplies",
+    "scheme": "studyzie",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./screens/assets/icon.png",
@@ -29,7 +30,13 @@
       "favicon": "./screens/assets/favicon.png"
     },
     "plugins": [
-      "expo-sqlite"
-    ]
+      "expo-sqlite",
+      "@react-native-google-signin/google-signin"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "819e638e-82bf-4c60-b20f-a3a715b9f7f1"
+      }
+    }
   }
 }
