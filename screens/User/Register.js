@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, Image, ActivityIndicator, Platform } from "react-native";
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { useNavigation } from "@react-navigation/native";
@@ -8,6 +8,10 @@ import axios from "axios";
 import baseURL from "../assets/common/baseurl";
 import { Ionicons } from "@expo/vector-icons";
 import mime from "mime";
+import * as Google from "expo-auth-session/providers/google";
+import * as WebBrowser from "expo-web-browser";
+
+WebBrowser.maybeCompleteAuthSession();
 
 const isLocalUri = (value) => /^(file|content|ph):\/\//i.test(value || "");
 
@@ -27,6 +31,41 @@ const Register = () => {
     const [avatarUri, setAvatarUri] = useState("");
     const [error, setError] = useState("");
     const [isLoading, setIsLoading] = useState(false);
+
+    const [request, response, promptAsync] = Google.useAuthRequest({
+        androidClientId: "389416302400-1fjocq4mkov74o6uaqr8h07dd0il0013.apps.googleusercontent.com",
+        webClientId: "389416302400-1fjocq4mkov74o6uaqr8h07dd0il0013.apps.googleusercontent.com",
+    }, {
+        scheme: "studyzie"
+    });
+
+    useEffect(() => {
+        if (response?.type === "success") {
+            const { authentication } = response;
+            handleGoogleRegister(authentication.accessToken);
+        }
+    }, [response]);
+
+    const handleGoogleRegister = async (token) => {
+        setIsLoading(true);
+        try {
+            // Future logic: Fetch Google profile and send to backend
+            Toast.show({
+                topOffset: 60,
+                type: "success",
+                text1: "Google Connected",
+                text2: "Finalizing registration...",
+            });
+        } catch (err) {
+            Toast.show({
+                topOffset: 60,
+                type: "error",
+                text1: "Google Registration failed",
+            });
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
     const setAvatar = (uri) => {
         if (!uri) return;
@@ -250,7 +289,11 @@ const Register = () => {
                     <TouchableOpacity style={styles.socialButton}>
                         <Ionicons name="logo-facebook" size={24} color="#1877F2" />
                     </TouchableOpacity>
-                    <TouchableOpacity style={styles.socialButton}>
+                    <TouchableOpacity 
+                        style={[styles.socialButton, !request && styles.disabledButton]} 
+                        onPress={() => promptAsync()}
+                        disabled={!request}
+                    >
                         <Ionicons name="logo-google" size={24} color="#DB4437" />
                     </TouchableOpacity>
                     <TouchableOpacity style={styles.socialButton}>
