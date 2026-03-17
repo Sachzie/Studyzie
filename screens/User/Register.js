@@ -34,7 +34,7 @@ const Register = () => {
 
     const [request, response, promptAsync] = Google.useAuthRequest({
         androidClientId: "389416302400-1fjocq4mkov74o6uaqr8h07dd0il0013.apps.googleusercontent.com",
-        webClientId: "389416302400-1fjocq4mkov74o6uaqr8h07dd0il0013.apps.googleusercontent.com",
+        webClientId: "389416302400-g2us37q2kh02t56eca11ncbqj6g3kljp.apps.googleusercontent.com",
     }, {
         scheme: "studyzie"
     });

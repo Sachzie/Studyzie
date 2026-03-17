@@ -30,11 +30,13 @@ yarn-error.*
 .DS_Store
 *.pem
 
-# local env files
+# local secrets
 .env
 .env*.local
 backend/.env
 backend/*firebase-adminsdk*.json
+client_secret_*.json
+google-services.json
 
 # typescript
 *.tsbuildinfo
