@@ -137,22 +137,24 @@ const Login = () => {
                         )}
                     </TouchableOpacity>
 
+                    <TouchableOpacity 
+                        style={[styles.googleButton, !request && styles.disabledButton]} 
+                        onPress={() => promptAsync()}
+                        disabled={!request}
+                    >
+                        <Ionicons name="logo-google" size={20} color="#FFFFFF" style={styles.googleIcon} />
+                        <Text style={styles.googleButtonText}>Continue with Google</Text>
+                    </TouchableOpacity>
+
                     <View style={styles.dividerContainer}>
                         <View style={styles.dividerLine} />
-                        <Text style={styles.dividerText}>Or Login with</Text>
+                        <Text style={styles.dividerText}>Other options</Text>
                         <View style={styles.dividerLine} />
                     </View>
 
                     <View style={styles.socialRow}>
                         <TouchableOpacity style={styles.socialButton}>
                             <Ionicons name="logo-facebook" size={24} color="#1877F2" />
-                        </TouchableOpacity>
-                        <TouchableOpacity 
-                            style={[styles.socialButton, !request && styles.disabledButton]} 
-                            onPress={() => promptAsync()}
-                            disabled={!request}
-                        >
-                            <Ionicons name="logo-google" size={24} color="#DB4437" />
                         </TouchableOpacity>
                         <TouchableOpacity style={styles.socialButton}>
                             <Ionicons name="logo-apple" size={24} color="#000000" />
@@ -237,6 +239,29 @@ const styles = StyleSheet.create({
         opacity: 0.7,
     },
     loginButtonText: {
+        color: "#FFFFFF",
+        fontSize: 16,
+        fontWeight: "600",
+    },
+    googleButton: {
+        backgroundColor: "#DB4437", // Google Red
+        borderRadius: 12,
+        paddingVertical: 16,
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        marginBottom: 24,
+        height: 56,
+        shadowColor: "#DB4437",
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.2,
+        shadowRadius: 8,
+        elevation: 4,
+    },
+    googleIcon: {
+        marginRight: 12,
+    },
+    googleButtonText: {
         color: "#FFFFFF",
         fontSize: 16,
         fontWeight: "600",
