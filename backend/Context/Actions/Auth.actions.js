@@ -40,14 +40,19 @@ export const loginUser = async (user, dispatch) => {
 export const logoutUser = async (dispatch, userId) => {
     if (userId) {
         try {
-            const token = await setToken(); // Actually we need to get token, but the helper might be just for storage.
+            const token = await getToken();
             // Clear the push token from the user record when they log out to prevent stale notifications
-            await axios.put(`${baseURL}users/${userId}/push-token`, { pushToken: '' });
+            if (token) {
+                await axios.put(`${baseURL}users/${userId}/push-token`, 
+                    { pushToken: '' },
+                    { headers: { Authorization: `Bearer ${token}` } }
+                );
+            }
         } catch (e) {
             console.log("Could not clear push token on logout", e.message);
         }
     }
-    removeToken();
+    await removeToken();
     dispatch(setCurrentUser({}))
 }
 

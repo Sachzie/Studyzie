@@ -225,10 +225,14 @@ const UserProfile = () => {
         }
     };
 
-    const handleLogout = () => {
+    const handleLogout = async () => {
         const userId = context.stateUser.user.userId || context.stateUser.user.id || context.stateUser.user.sub;
-        logoutUser(context.dispatch, userId);
-        navigation.navigate("Login");
+        try {
+            await logoutUser(context.dispatch, userId);
+            navigation.navigate("Login");
+        } catch (error) {
+            console.log("Logout failed:", error.message);
+        }
     };
 
     if (loading) {

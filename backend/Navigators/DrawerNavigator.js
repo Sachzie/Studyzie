@@ -27,7 +27,7 @@ const DrawerNavigator = () => {
           fontWeight: "700",
         },
       }}
-      drawerContent={() => <DrawerContent />}>
+      drawerContent={(props) => <DrawerContent {...props} />}>
       <NativeDrawer.Screen 
         name="Studyzie" 
         component={Main} 

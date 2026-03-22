@@ -25,23 +25,25 @@ const NotificationHandler = () => {
 
   useEffect(() => {
     const setupNotifications = async () => {
-        const token = await registerForPushNotificationsAsync();
-        if (token && context.stateUser.isAuthenticated) {
-            savePushTokenToBackend(token);
+        try {
+            const token = await registerForPushNotificationsAsync();
+            if (token && context.stateUser.isAuthenticated) {
+                await savePushTokenToBackend(token);
+            }
+        } catch (error) {
+            console.log("Push notification setup failed:", error.message);
         }
     };
 
     setupNotifications();
 
-    // ... existing listeners ...
     notificationListener.current = Notifications.addNotificationReceivedListener(notification => {
-      console.log('Notification Received:', notification);
+      console.log('🔔 Notification Received:', notification.request.content.title);
     });
 
-    // This listener is fired whenever a user taps on or interacts with a notification
     responseListener.current = Notifications.addNotificationResponseReceivedListener(response => {
       const { data } = response.notification.request.content;
-      console.log('Notification Clicked with data:', data);
+      console.log('👆 Notification Tapped:', data?.screen);
 
       if (data?.screen === 'My Orders') {
         navigation.navigate('My Orders', { orderId: data?.orderId });

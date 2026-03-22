@@ -1,7 +1,7 @@
 import { useNavigation } from '@react-navigation/native';
 import React, { useContext } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image, SafeAreaView } from 'react-native';
-import { DrawerContentScrollView, DrawerItemList } from '@react-navigation/drawer';
+import { DrawerContentScrollView } from '@react-navigation/drawer';
 import { Ionicons } from '@expo/vector-icons';
 import AuthGlobal from '../../backend/Context/Store/AuthGlobal';
 import { logoutUser } from '../../backend/Context/Actions/Auth.actions';
@@ -13,9 +13,13 @@ const DrawerContent = (props) => {
     const isAdmin = Boolean(user?.isAdmin);
     const userId = user.userId || user.id || user.sub;
 
-    const handleLogout = () => {
-        logoutUser(context.dispatch, userId);
-        navigation.navigate('Login');
+    const handleLogout = async () => {
+        try {
+            await logoutUser(context.dispatch, userId);
+            navigation.navigate('Login');
+        } catch (error) {
+            console.log("Logout failed:", error.message);
+        }
     };
 
     const userName = user?.name || "Studyzie User";
