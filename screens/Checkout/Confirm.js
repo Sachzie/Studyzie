@@ -14,6 +14,35 @@ import { getToken } from '../../backend/Context/Store/tokenStorage';
 var { width, height } = Dimensions.get("window");
 const API_ORIGIN = baseURL.replace(/api\/v1\/?$/, "");
 const FALLBACK_IMAGE = "https://cdn.pixabay.com/photo/2012/04/01/17/29/box-23649_960_720.png";
+const IMAGE_SOURCE_BY_KEY = {
+    a4: require("../Picures/a4.jpg"),
+    ballpen: require("../Picures/ballpen.jpg"),
+    notebook: require("../Picures/notebook.jpg"),
+    pencil: require("../Picures/pencil.jpg"),
+    yellowpad: require("../Picures/yellowpad.jpg"),
+    oilpastel: require("../Picures/oilpastel.png"),
+};
+
+const normalizeImageKey = (value) =>
+    (value || "")
+        .toString()
+        .trim()
+        .toLowerCase()
+        .replace(/\s+/g, "")
+        .replace(/[^a-z0-9]/g, "");
+
+const getImageKeyFromName = (name) => {
+    const normalized = normalizeImageKey(name);
+
+    if (normalized.includes("oilpastel")) return "oilpastel";
+    if (normalized.includes("yellowpad")) return "yellowpad";
+    if (normalized.includes("ballpen")) return "ballpen";
+    if (normalized.includes("notebook")) return "notebook";
+    if (normalized.includes("pencil")) return "pencil";
+    if (normalized.includes("a4")) return "a4";
+
+    return "";
+};
 
 const resolveImageUri = (rawUri) => {
     if (!rawUri) return "";
@@ -53,6 +82,13 @@ const resolveItemImageSource = (item) => {
     const imageUri = resolveImageUri(item?.image || item?.product?.image || "");
     if (imageUri) {
         return { uri: imageUri };
+    }
+
+    const imageKey = normalizeImageKey(item?.imageKey || item?.product?.imageKey);
+    const keyFromName = getImageKeyFromName(item?.name || item?.product?.name || "");
+    const resolvedKey = imageKey || keyFromName;
+    if (resolvedKey && IMAGE_SOURCE_BY_KEY[resolvedKey]) {
+        return IMAGE_SOURCE_BY_KEY[resolvedKey];
     }
 
     return { uri: FALLBACK_IMAGE };
