@@ -7,6 +7,7 @@ import Auth from './backend/Context/Store/Auth';
 import DrawerNavigator from './backend/Navigators/DrawerNavigator';
 import CartSync from './backend/Context/Store/CartSync';
 import CartSQLiteSync from './backend/Context/Store/CartSQLiteSync';
+import NotificationHandler from './Shared/NotificationHandler';
 
 export default function App() {
   return (
@@ -16,6 +17,7 @@ export default function App() {
         <CartSync />
         <NavigationContainer>
           <StatusBar style="dark" />
+          <NotificationHandler />
           <DrawerNavigator />
           <Toast />
         </NavigationContainer>

@@ -1,7 +1,16 @@
 const Order = require('../models/Order');
 const OrderItem = require('../models/OrderItem');
+const User = require('../models/User');
 const express = require('express');
 const router = express.Router();
+const { sendPushNotification } = require('../utils/pushNotifications');
+
+const statusLabels = {
+    "0": "Cancelled",
+    "1": "Delivered",
+    "2": "Shipped",
+    "3": "Pending",
+};
 
 router.get(`/`, async (req, res) =>{
     const orderList = await Order.find()
@@ -93,18 +102,38 @@ router.post('/', async (req,res)=>{
 })
 
 router.put('/:id',async (req, res)=> {
-    const order = await Order.findByIdAndUpdate(
-        req.params.id,
-        {
-            status: req.body.status
-        },
-        { new: true}
-    )
+    try {
+        const order = await Order.findByIdAndUpdate(
+            req.params.id,
+            {
+                status: req.body.status
+            },
+            { new: true}
+        ).populate('user', 'name pushToken');
 
-    if(!order)
-    return res.status(400).send('the order cannot be update!')
+        if(!order)
+            return res.status(400).send('the order cannot be update!')
 
-    res.send(order);
+        // Send remote push notification if user has a push token
+        if (order.user && order.user.pushToken) {
+            const statusName = statusLabels[req.body.status] || "Updated";
+            const orderIdShort = order.id.slice(-6);
+            
+            await sendPushNotification(
+                order.user.pushToken,
+                "📦 Order Status Updated!",
+                `Your order #${orderIdShort} is now ${statusName.toUpperCase()}. Tap to view details.`,
+                { 
+                    screen: 'My Orders', 
+                    orderId: order.id 
+                }
+            ).catch(err => console.log("Failed to send remote notification:", err.message));
+        }
+
+        res.send(order);
+    } catch (error) {
+        return res.status(500).json({ success: false, error: error.message });
+    }
 })
 
 router.delete('/:id', (req, res)=>{

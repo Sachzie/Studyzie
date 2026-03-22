@@ -8,6 +8,8 @@ import { useNavigation } from '@react-navigation/native'
 import Toast from "react-native-toast-message";
 import { getToken } from "../../backend/Context/Store/tokenStorage";
 
+import * as Notifications from 'expo-notifications';
+
 const API_ORIGIN = baseURL.replace(/api\/v1\/?$/, "");
 
 const resolveAvatarUri = (rawUri) => {
@@ -50,7 +52,7 @@ const OrderCard = ({ item, update, avatarUrl, displayName }) => {
   const [statusChange, setStatusChange] = useState(item.status);
   const [token, setToken] = useState('');
   const navigation = useNavigation();
-  const [showDetails, setShowDetails] = useState(false);
+  const [showDetails, setShowDetails] = useState(item.id === navigation.getState()?.routes?.find(r => r.name === 'My Orders')?.params?.orderId);
 
   useEffect(() => {
     getToken()
@@ -59,6 +61,14 @@ const OrderCard = ({ item, update, avatarUrl, displayName }) => {
       })
       .catch((error) => console.log(error));
   }, []);
+
+  // Update showDetails if params change
+  useEffect(() => {
+    const params = navigation.getState()?.routes?.find(r => r.name === 'My Orders')?.params;
+    if (params?.orderId === item.id) {
+      setShowDetails(true);
+    }
+  }, [navigation.getState()?.routes?.find(r => r.name === 'My Orders')?.params?.orderId]);
 
   const updateOrder = (newStatus) => {
     setStatusChange(newStatus);
@@ -81,6 +91,10 @@ const OrderCard = ({ item, update, avatarUrl, displayName }) => {
             text1: "Order Updated",
             text2: `Status changed to ${codes.find(c => c.code === newStatus).name}`,
           });
+          
+          // Send Local Push Notification
+          const statusName = codes.find(c => c.code === newStatus)?.name || "Updated";
+          sendLocalNotification(item.id, statusName);
         }
       })
       .catch((error) => {
@@ -90,6 +104,22 @@ const OrderCard = ({ item, update, avatarUrl, displayName }) => {
           text2: "Please try again",
         });
       });
+  };
+
+  const sendLocalNotification = async (orderId, status) => {
+    await Notifications.scheduleNotificationAsync({
+        content: {
+            title: "📦 Order Status Updated!",
+            body: `Order #${orderId.slice(-6)} is now ${status.toUpperCase()}. Tap to view details.`,
+            data: { 
+                screen: 'My Orders', 
+                orderId: orderId 
+            },
+            sound: true,
+            priority: Notifications.AndroidImportance.MAX,
+        },
+        trigger: null,
+    });
   };
 
   const getStatusColor = (status) => {
@@ -148,7 +178,11 @@ const OrderCard = ({ item, update, avatarUrl, displayName }) => {
     : "Date unavailable";
 
   return (
-    <View style={styles.card}>
+    <TouchableOpacity 
+      activeOpacity={0.9} 
+      onPress={() => setShowDetails((prev) => !prev)}
+      style={styles.card}
+    >
       <View style={styles.cardTop}>
         {update ? (
           <View style={[styles.statusSelect, { backgroundColor: getStatusColor(statusChange) }]}>
@@ -170,10 +204,10 @@ const OrderCard = ({ item, update, avatarUrl, displayName }) => {
           </View>
         )}
 
-        <TouchableOpacity style={styles.detailsLink} onPress={() => setShowDetails((prev) => !prev)}>
+        <View style={styles.detailsLink}>
           <Text style={styles.detailsText}>See details</Text>
           <Ionicons name={showDetails ? "chevron-up" : "chevron-forward"} size={16} color="#6B7280" />
-        </TouchableOpacity>
+        </View>
       </View>
 
       <View style={styles.cardBody}>
@@ -228,7 +262,7 @@ const OrderCard = ({ item, update, avatarUrl, displayName }) => {
           )}
         </View>
       ) : null}
-    </View>
+    </TouchableOpacity>
   );
 };
 

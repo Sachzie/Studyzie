@@ -358,6 +358,25 @@ router.delete('/:id', (req, res) => {
     });
 });
 
+// PUT update user push token
+router.put('/:id/push-token', async (req, res) => {
+  try {
+    const user = await User.findByIdAndUpdate(
+      req.params.id,
+      { pushToken: req.body.pushToken },
+      { new: true }
+    );
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    res.send({ success: true, pushToken: user.pushToken });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // GET user count
 router.get('/get/count', async (req, res) => {
   try {

@@ -16,6 +16,7 @@ const MyOrders = (props) => {
     const dispatch = useDispatch();
     const ordersState = useSelector((state) => state.orders);
     const { userList: orders, userLoading: loading } = ordersState;
+    const route = props.route;
 
     useFocusEffect(
         useCallback(() => {
@@ -70,6 +71,15 @@ const MyOrders = (props) => {
         }
         return orders;
     }, [orders, activeFilter]);
+
+    // Handle deep link from notification
+    useEffect(() => {
+        if (route.params?.orderId) {
+            // Find the order and potentially highlight it or expand it
+            // For now, we'll just ensure the list is showing 'All' so it's visible
+            setActiveFilter("All");
+        }
+    }, [route.params?.orderId]);
 
     return (
         <View style={styles.container}>
