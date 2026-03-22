@@ -249,22 +249,27 @@ router.put('/:id', uploadOptions.single("image"), async (req, res) => {
         cloudinaryPublicId = uploadedImage.publicId;
     }
 
+    const updatePayload = {
+      name: req.body.name,
+      email: req.body.email,
+      passwordHash: newPassword,
+      phone: req.body.phone,
+      isAdmin: parseBoolean(req.body.isAdmin, userExist?.isAdmin || false),
+      street: req.body.street,
+      apartment: req.body.apartment,
+      zip: req.body.zip,
+      city: req.body.city,
+      country: req.body.country,
+    };
+
+    if (file) {
+      updatePayload.image = imageUrl;
+      updatePayload.cloudinaryPublicId = cloudinaryPublicId;
+    }
+
     const user = await User.findByIdAndUpdate(
       req.params.id,
-      {
-        name: req.body.name,
-        email: req.body.email,
-        passwordHash: newPassword,
-        phone: req.body.phone,
-        isAdmin: parseBoolean(req.body.isAdmin, userExist?.isAdmin || false),
-        street: req.body.street,
-        apartment: req.body.apartment,
-        zip: req.body.zip,
-        city: req.body.city,
-        country: req.body.country,
-        image: imageUrl,
-        cloudinaryPublicId: cloudinaryPublicId,
-      },
+      updatePayload,
       { new: true }
     );
 
