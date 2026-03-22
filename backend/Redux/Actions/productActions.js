@@ -13,7 +13,11 @@ export const fetchProducts = () => async (dispatch) => {
     dispatch({ type: PRODUCT_LIST_REQUEST });
     try {
         const response = await axios.get(`${baseURL}products`);
-        dispatch({ type: PRODUCT_LIST_SUCCESS, payload: response.data || [] });
+        dispatch({
+            type: PRODUCT_LIST_SUCCESS,
+            payload: response.data || [],
+            meta: { fetchedAt: Date.now() },
+        });
     } catch (error) {
         dispatch({
             type: PRODUCT_LIST_FAIL,
@@ -26,7 +30,11 @@ export const fetchCategories = () => async (dispatch) => {
     dispatch({ type: CATEGORY_LIST_REQUEST });
     try {
         const response = await axios.get(`${baseURL}categories`);
-        dispatch({ type: CATEGORY_LIST_SUCCESS, payload: response.data || [] });
+        dispatch({
+            type: CATEGORY_LIST_SUCCESS,
+            payload: response.data || [],
+            meta: { fetchedAt: Date.now() },
+        });
     } catch (error) {
         dispatch({
             type: CATEGORY_LIST_FAIL,

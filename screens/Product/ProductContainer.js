@@ -193,6 +193,8 @@ const ProductContainer = () => {
         loading: productsLoading,
         error: productsError,
         categoriesLoading,
+        lastFetched,
+        categoriesLastFetched,
     } = productsState;
     const [products, setProducts] = useState(LOCAL_PRODUCTS);
     const [productsCtg, setProductsCtg] = useState(LOCAL_PRODUCTS);
@@ -332,10 +334,18 @@ const ProductContainer = () => {
             setMinPrice("");
             setMaxPrice("");
 
-            dispatch(fetchProducts());
-            dispatch(fetchCategories());
+            const now = Date.now();
+            const shouldFetchProducts = !lastFetched || now - lastFetched > 15000;
+            const shouldFetchCategories = !categoriesLastFetched || now - categoriesLastFetched > 60000;
+
+            if (shouldFetchProducts) {
+                dispatch(fetchProducts());
+            }
+            if (shouldFetchCategories) {
+                dispatch(fetchCategories());
+            }
             loadPromotion();
-        }, [dispatch, loadPromotion])
+        }, [dispatch, loadPromotion, lastFetched, categoriesLastFetched])
     );
 
     useEffect(() => {
@@ -343,20 +353,30 @@ const ProductContainer = () => {
             ? storeProducts.map(normalizeProduct)
             : [];
         const hasApiProducts = normalizedProducts.length > 0;
-        const activeProducts = hasApiProducts ? normalizedProducts : LOCAL_PRODUCTS;
-        setProducts(activeProducts);
-        setProductsCtg(activeProducts);
 
         if (productsLoading) {
+            if (hasApiProducts) {
+                setProducts(normalizedProducts);
+                setProductsCtg(normalizedProducts);
+            }
+            return;
+        }
+
+        if (hasApiProducts) {
+            setProducts(normalizedProducts);
+            setProductsCtg(normalizedProducts);
+            setNotice("");
             return;
         }
 
         if (productsError) {
+            setProducts(LOCAL_PRODUCTS);
+            setProductsCtg(LOCAL_PRODUCTS);
             setNotice("Showing local products while the server is unavailable.");
-        } else if (!hasApiProducts) {
-            setNotice("No products in database yet. Showing local products.");
         } else {
-            setNotice("");
+            setProducts(LOCAL_PRODUCTS);
+            setProductsCtg(LOCAL_PRODUCTS);
+            setNotice("No products in database yet. Showing local products.");
         }
     }, [storeProducts, productsError, productsLoading]);
 

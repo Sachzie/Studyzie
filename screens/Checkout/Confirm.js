@@ -7,6 +7,7 @@ import axios from 'axios';
 import baseURL from '../assets/common/baseurl';
 import Toast from 'react-native-toast-message';
 import { clearCart } from '../../backend/Redux/Actions/cartActions';
+import { fetchProducts } from '../../backend/Redux/Actions/productActions';
 import { clearCartStorage } from '../../backend/Context/Store/CartStorage';
 import { getToken } from '../../backend/Context/Store/tokenStorage';
 
@@ -95,6 +96,7 @@ const Confirm = (props) => {
             });
             setTimeout(() => {
                 dispatch(clearCart())
+                dispatch(fetchProducts())
                 clearCartStorage().catch(() => {});
                 navigation.navigate('Cart Screen', { screen: 'Cart' })
             }, 500);

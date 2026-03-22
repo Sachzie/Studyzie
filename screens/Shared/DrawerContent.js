@@ -1,11 +1,39 @@
 import { useNavigation } from '@react-navigation/native';
-import React, { useContext } from 'react';
+import React, { useContext, useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image, SafeAreaView } from 'react-native';
 import { DrawerContentScrollView } from '@react-navigation/drawer';
 import { Ionicons } from '@expo/vector-icons';
 import AuthGlobal from '../../backend/Context/Store/AuthGlobal';
 import { logoutUser } from '../../backend/Context/Actions/Auth.actions';
 import StudyzieLogo from '../../Shared/StudyzieLogo';
+import axios from 'axios';
+import baseURL from '../assets/common/baseurl';
+import { getToken } from '../../backend/Context/Store/tokenStorage';
+
+const API_ORIGIN = baseURL.replace(/api\/v1\/?$/, "");
+
+const resolveAvatarUri = (rawUri) => {
+    if (!rawUri) return "";
+    if (rawUri.startsWith("data:image")) return rawUri;
+
+    if (/^https?:\/\//i.test(rawUri)) {
+        try {
+            const url = new URL(rawUri);
+            if (url.hostname === "localhost" || url.hostname === "127.0.0.1") {
+                return `${API_ORIGIN}${url.pathname}`;
+            }
+            return rawUri;
+        } catch (e) {
+            return rawUri;
+        }
+    }
+
+    if (rawUri.startsWith("/")) {
+        return `${API_ORIGIN}${rawUri}`;
+    }
+
+    return `${API_ORIGIN}/public/uploads/${rawUri}`;
+};
 
 const DrawerContent = (props) => {
     const navigation = useNavigation();
@@ -13,6 +41,7 @@ const DrawerContent = (props) => {
     const user = context?.stateUser?.user || {};
     const isAdmin = Boolean(user?.isAdmin);
     const userId = user.userId || user.id || user.sub;
+    const [profileImage, setProfileImage] = useState("");
 
     const handleLogout = async () => {
         try {
@@ -25,6 +54,34 @@ const DrawerContent = (props) => {
 
     const userName = user?.name || "Studyzie User";
 
+    useEffect(() => {
+        let isMounted = true;
+
+        const fetchProfile = async () => {
+            if (!userId) return;
+            try {
+                const token = await getToken();
+                if (!token) return;
+                const response = await axios.get(`${baseURL}users/${userId}`, {
+                    headers: { Authorization: `Bearer ${token}` },
+                });
+                if (isMounted) {
+                    setProfileImage(response.data?.image || "");
+                }
+            } catch (error) {
+                if (isMounted) {
+                    setProfileImage(user?.image || "");
+                }
+            }
+        };
+
+        fetchProfile();
+
+        return () => {
+            isMounted = false;
+        };
+    }, [userId, user?.image]);
+
     return (
         <View style={styles.container}>
             <DrawerContentScrollView {...props} contentContainerStyle={styles.drawerScroll}>
@@ -34,7 +91,11 @@ const DrawerContent = (props) => {
                     </View>
                     <View style={styles.profileInfo}>
                         <View style={styles.avatar}>
-                            <Text style={styles.avatarText}>{userName.charAt(0).toUpperCase()}</Text>
+                            {profileImage ? (
+                                <Image source={{ uri: resolveAvatarUri(profileImage) }} style={styles.avatarImage} />
+                            ) : (
+                                <Text style={styles.avatarText}>{userName.charAt(0).toUpperCase()}</Text>
+                            )}
                         </View>
                         <View style={styles.textContainer}>
                             <Text style={styles.userName} numberOfLines={1}>{userName}</Text>
@@ -124,6 +185,12 @@ const styles = StyleSheet.create({
         backgroundColor: '#FFFFFF',
         justifyContent: 'center',
         alignItems: 'center',
+        overflow: 'hidden',
+    },
+    avatarImage: {
+        width: '100%',
+        height: '100%',
+        borderRadius: 25,
     },
     avatarText: {
         fontSize: 20,

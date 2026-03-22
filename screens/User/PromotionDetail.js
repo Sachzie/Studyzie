@@ -86,7 +86,7 @@ const PromotionDetail = ({ route, navigation }) => {
 
                 <TouchableOpacity 
                     style={styles.shopButton}
-                    onPress={() => navigation.navigate("Main")}
+                    onPress={() => navigation.popToTop()}
                 >
                     <Text style={styles.shopButtonText}>Shop Now</Text>
                     <Ionicons name="arrow-forward" size={20} color="#FFFFFF" />

@@ -14,6 +14,8 @@ const initialState = {
     error: null,
     categoriesLoading: false,
     categoriesError: null,
+    lastFetched: 0,
+    categoriesLastFetched: 0,
 };
 
 const productsReducer = (state = initialState, action) => {
@@ -21,13 +23,23 @@ const productsReducer = (state = initialState, action) => {
         case PRODUCT_LIST_REQUEST:
             return { ...state, loading: true, error: null };
         case PRODUCT_LIST_SUCCESS:
-            return { ...state, loading: false, items: action.payload || [] };
+            return {
+                ...state,
+                loading: false,
+                items: action.payload || [],
+                lastFetched: action?.meta?.fetchedAt || Date.now(),
+            };
         case PRODUCT_LIST_FAIL:
             return { ...state, loading: false, error: action.payload };
         case CATEGORY_LIST_REQUEST:
             return { ...state, categoriesLoading: true, categoriesError: null };
         case CATEGORY_LIST_SUCCESS:
-            return { ...state, categoriesLoading: false, categories: action.payload || [] };
+            return {
+                ...state,
+                categoriesLoading: false,
+                categories: action.payload || [],
+                categoriesLastFetched: action?.meta?.fetchedAt || Date.now(),
+            };
         case CATEGORY_LIST_FAIL:
             return { ...state, categoriesLoading: false, categoriesError: action.payload };
         default:

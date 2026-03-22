@@ -2,6 +2,7 @@ const Order = require('../models/Order');
 const OrderItem = require('../models/OrderItem');
 const User = require('../models/User');
 const Promotion = require('../models/Promotion');
+const Product = require('../models/Product');
 const express = require('express');
 const router = express.Router();
 const { sendPushNotification } = require('../utils/pushNotifications');
@@ -54,6 +55,32 @@ router.post('/', async (req,res)=>{
             }
             return item.product || item.id || item._id || null;
         };
+
+        const requestedItems = orderItemsPayload.map((orderItem) => ({
+            productId: resolveProductId(orderItem),
+            quantity: Number(orderItem?.quantity) || 1,
+        }));
+
+        const productIds = requestedItems.map((item) => item.productId).filter(Boolean);
+        if (productIds.length !== requestedItems.length) {
+            return res.status(400).json({ success: false, message: "Each order item must include a product id." });
+        }
+
+        const products = await Product.find({ _id: { $in: productIds } }).select('countInStock name');
+        const productMap = new Map(products.map((product) => [String(product._id), product]));
+
+        for (const item of requestedItems) {
+            const product = productMap.get(String(item.productId));
+            if (!product) {
+                return res.status(400).json({ success: false, message: "One or more products are missing." });
+            }
+            if (item.quantity > product.countInStock) {
+                return res.status(400).json({
+                    success: false,
+                    message: `${product.name} has only ${product.countInStock} left in stock.`,
+                });
+            }
+        }
 
         const orderItemsIdsResolved = await Promise.all(orderItemsPayload.map(async (orderItem) =>{
             const productId = resolveProductId(orderItem);
@@ -146,6 +173,15 @@ router.post('/', async (req,res)=>{
                 { $inc: { redeemedCount: 1 } }
             );
         }
+
+        await Promise.all(
+            requestedItems.map((item) =>
+                Product.updateOne(
+                    { _id: item.productId },
+                    { $inc: { countInStock: -item.quantity } }
+                )
+            )
+        );
 
         if(!order)
         return res.status(400).send('the order cannot be created!')
