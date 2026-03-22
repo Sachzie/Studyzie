@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useContext } from 'react';
 import * as Notifications from 'expo-notifications';
 import { useNavigation } from '@react-navigation/native';
-import { Platform } from 'react-native';
+import { Platform, DeviceEventEmitter } from 'react-native';
 import * as Device from 'expo-device';
 import Constants from 'expo-constants';
 import axios from 'axios';
@@ -43,9 +43,11 @@ const NotificationHandler = () => {
       const promo = notification.request?.content?.data?.promotion;
       if (promo?.discountCode && promo?.discountAmount) {
         setPromotion(promo);
+        DeviceEventEmitter.emit("promotion:update", promo);
       }
       if (promo === null) {
         clearPromotion();
+        DeviceEventEmitter.emit("promotion:update", null);
       }
     });
 
@@ -60,6 +62,10 @@ const NotificationHandler = () => {
       } else if (data?.screen === 'PromotionDetail') {
         if (data?.promotion?.discountCode && data?.promotion?.discountAmount) {
           setPromotion(data.promotion);
+          DeviceEventEmitter.emit("promotion:update", data.promotion);
+        } else if (data?.promotion === null) {
+          clearPromotion();
+          DeviceEventEmitter.emit("promotion:update", null);
         }
         navigation.navigate('PromotionDetail', { promotion: data?.promotion });
       }

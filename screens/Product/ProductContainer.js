@@ -1,5 +1,5 @@
 import React, { useCallback, useState, useContext, useEffect, useRef } from "react";
-import { View, StyleSheet, ActivityIndicator, ScrollView, TouchableOpacity } from "react-native";
+import { View, StyleSheet, ActivityIndicator, ScrollView, TouchableOpacity, DeviceEventEmitter } from "react-native";
 import { Surface, Text, Searchbar, TextInput } from "react-native-paper";
 import { useFocusEffect, useNavigation, DrawerActions } from "@react-navigation/native";
 import { useDispatch, useSelector } from "react-redux";
@@ -217,6 +217,23 @@ const ProductContainer = () => {
             justLoggedIn.current = false; // Reset after showing the notification
         }
     }, [context.stateUser.isAuthenticated]);
+
+    useEffect(() => {
+        const subscription = DeviceEventEmitter.addListener("promotion:update", (promo) => {
+            if (promo?.discountCode && promo?.discountAmount) {
+                setActivePromotion(promo);
+                setPromotion(promo);
+                setPromoVisible(true);
+                return;
+            }
+            setActivePromotion(null);
+            clearPromotion();
+        });
+
+        return () => {
+            subscription.remove();
+        };
+    }, []);
 
     const loadPromotion = useCallback(async () => {
         try {
