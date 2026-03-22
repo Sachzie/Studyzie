@@ -8,6 +8,8 @@ import {
     TouchableOpacity,
     StatusBar,
     Image,
+    Modal,
+    Pressable,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
@@ -35,6 +37,9 @@ const Users = ({ navigation }) => {
     const [refreshing, setRefreshing] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
     const [token, setToken] = useState("");
+    const [confirmVisible, setConfirmVisible] = useState(false);
+    const [pendingUser, setPendingUser] = useState(null);
+    const [deleting, setDeleting] = useState(false);
 
     useFocusEffect(
         useCallback(() => {
@@ -74,6 +79,17 @@ const Users = ({ navigation }) => {
     };
 
     const deleteUser = async (id) => {
+        if (!token) {
+            Toast.show({
+                topOffset: 60,
+                type: "error",
+                text1: "Not authorized",
+                text2: "Please login again.",
+            });
+            return;
+        }
+
+        setDeleting(true);
         try {
             await axios.delete(`${baseURL}users/${id}`, {
                 headers: { Authorization: `Bearer ${token}` },
@@ -95,7 +111,21 @@ const Users = ({ navigation }) => {
                 text1: "Delete failed",
                 text2: "Could not delete user.",
             });
+        } finally {
+            setDeleting(false);
         }
+    };
+
+    const requestDelete = (user) => {
+        setPendingUser(user);
+        setConfirmVisible(true);
+    };
+
+    const confirmDelete = async () => {
+        if (!pendingUser) return;
+        await deleteUser(pendingUser.id);
+        setConfirmVisible(false);
+        setPendingUser(null);
     };
 
     const totalUsers = useMemo(() => userList.length, [userList.length]);
@@ -138,7 +168,7 @@ const Users = ({ navigation }) => {
                 <TouchableOpacity style={styles.editButton} onPress={() => navigation.navigate("UserForm", { item })}>
                     <Ionicons name="create-outline" size={18} color="#FFFFFF" />
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.deleteButton} onPress={() => deleteUser(item.id)}>
+                <TouchableOpacity style={styles.deleteButton} onPress={() => requestDelete(item)}>
                     <Ionicons name="trash-outline" size={18} color="#FFFFFF" />
                 </TouchableOpacity>
             </View>
@@ -202,6 +232,47 @@ const Users = ({ navigation }) => {
             <TouchableOpacity style={styles.fab} onPress={() => navigation.navigate("UserForm")}>
                 <Ionicons name="add" size={30} color="#FFFFFF" />
             </TouchableOpacity>
+
+            <Modal
+                transparent
+                animationType="fade"
+                visible={confirmVisible}
+                onRequestClose={() => setConfirmVisible(false)}
+            >
+                <Pressable style={styles.modalOverlay} onPress={() => setConfirmVisible(false)}>
+                    <Pressable style={styles.modalCard} onPress={() => {}}>
+                        <View style={styles.modalHeader}>
+                            <Ionicons name="warning-outline" size={28} color="#DC2626" />
+                            <Text style={styles.modalTitle}>Remove this user?</Text>
+                        </View>
+                        <Text style={styles.modalSubtitle}>
+                            This action will permanently delete{" "}
+                            <Text style={styles.modalHighlight}>{pendingUser?.name || "this user"}</Text>.
+                        </Text>
+
+                        <View style={styles.modalActions}>
+                            <TouchableOpacity
+                                style={styles.modalCancel}
+                                onPress={() => setConfirmVisible(false)}
+                                disabled={deleting}
+                            >
+                                <Text style={styles.modalCancelText}>Cancel</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={[styles.modalDelete, deleting && styles.modalDeleteDisabled]}
+                                onPress={confirmDelete}
+                                disabled={deleting}
+                            >
+                                {deleting ? (
+                                    <ActivityIndicator color="#FFFFFF" />
+                                ) : (
+                                    <Text style={styles.modalDeleteText}>Delete User</Text>
+                                )}
+                            </TouchableOpacity>
+                        </View>
+                    </Pressable>
+                </Pressable>
+            </Modal>
         </View>
     );
 };
@@ -361,6 +432,70 @@ const styles = StyleSheet.create({
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.2,
         shadowRadius: 6,
+    },
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: "rgba(15, 23, 42, 0.5)",
+        justifyContent: "center",
+        alignItems: "center",
+        padding: 20,
+    },
+    modalCard: {
+        width: "100%",
+        borderRadius: 16,
+        backgroundColor: "#FFFFFF",
+        padding: 20,
+    },
+    modalHeader: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 10,
+        marginBottom: 10,
+    },
+    modalTitle: {
+        fontSize: 18,
+        fontWeight: "700",
+        color: "#111827",
+    },
+    modalSubtitle: {
+        fontSize: 13,
+        color: "#6B7280",
+        lineHeight: 18,
+        marginBottom: 20,
+    },
+    modalHighlight: {
+        color: "#111827",
+        fontWeight: "700",
+    },
+    modalActions: {
+        flexDirection: "row",
+        justifyContent: "flex-end",
+        gap: 10,
+    },
+    modalCancel: {
+        paddingVertical: 10,
+        paddingHorizontal: 16,
+        borderRadius: 10,
+        backgroundColor: "#F3F4F6",
+    },
+    modalCancelText: {
+        fontSize: 13,
+        fontWeight: "700",
+        color: "#374151",
+    },
+    modalDelete: {
+        paddingVertical: 10,
+        paddingHorizontal: 16,
+        borderRadius: 10,
+        backgroundColor: "#DC2626",
+    },
+    modalDeleteDisabled: {
+        opacity: 0.7,
+    },
+    modalDeleteText: {
+        fontSize: 13,
+        fontWeight: "700",
+        color: "#FFFFFF",
     },
 });
 
