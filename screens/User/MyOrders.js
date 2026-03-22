@@ -8,7 +8,6 @@ import baseURL from '../assets/common/baseurl';
 import OrderCard from '../Shared/OrderCard';
 import { fetchUserOrders } from '../../backend/Redux/Actions/orderActions';
 import { getToken } from '../../backend/Context/Store/tokenStorage';
-import StudyzieLogo from "../../Shared/StudyzieLogo";
 
 const MyOrders = (props) => {
     const context = useContext(AuthGlobal);
@@ -86,15 +85,6 @@ const MyOrders = (props) => {
         <View style={styles.container}>
             <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
             <View style={styles.header}>
-                <View style={styles.headerTopRow}>
-                    <View style={styles.headerBrand}>
-                        <Text style={styles.headerBrandText}>Studyzie</Text>
-                        <Text style={styles.headerBrandTag}>Your Orders</Text>
-                    </View>
-                    <View style={styles.headerLogo}>
-                        <StudyzieLogo size={30} />
-                    </View>
-                </View>
                 <View>
                     <Text style={styles.headerTitle}>Orders</Text>
                     <Text style={styles.headerSubtitle}>Your school supply purchases</Text>
@@ -172,37 +162,6 @@ const styles = StyleSheet.create({
         zIndex: 10,
         marginBottom: 12,
         justifyContent: "center",
-    },
-    headerTopRow: {
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "space-between",
-        marginBottom: 12,
-    },
-    headerBrand: {
-        flex: 1,
-        marginHorizontal: 12,
-    },
-    headerBrandText: {
-        fontSize: 15,
-        fontWeight: "800",
-        color: "#0F5D3A",
-    },
-    headerBrandTag: {
-        marginTop: 2,
-        fontSize: 11,
-        color: "#6B7280",
-        fontWeight: "600",
-    },
-    headerLogo: {
-        width: 38,
-        height: 38,
-        borderRadius: 12,
-        backgroundColor: "#FFFFFF",
-        alignItems: "center",
-        justifyContent: "center",
-        borderWidth: 1,
-        borderColor: "#E5E7EB",
     },
     headerTitle: {
         fontSize: 26,

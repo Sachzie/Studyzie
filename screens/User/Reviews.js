@@ -18,7 +18,6 @@ import AuthGlobal from "../../backend/Context/Store/AuthGlobal";
 import baseURL from "../assets/common/baseurl";
 import { fetchReviewables, submitReview as submitReviewAction } from "../../backend/Redux/Actions/reviewActions";
 import { getToken } from "../../backend/Context/Store/tokenStorage";
-import StudyzieLogo from "../../Shared/StudyzieLogo";
 import a4Img from "../Picures/a4.jpg";
 import ballpenImg from "../Picures/ballpen.jpg";
 import notebookImg from "../Picures/notebook.jpg";
@@ -283,15 +282,6 @@ const Reviews = ({ navigation }) => {
     return (
         <View style={styles.container}>
             <View style={styles.header}>
-                <View style={styles.headerTopRow}>
-                    <View style={styles.headerBrand}>
-                        <Text style={styles.headerBrandText}>Studyzie</Text>
-                        <Text style={styles.headerBrandTag}>Ratings</Text>
-                    </View>
-                    <View style={styles.headerLogo}>
-                        <StudyzieLogo size={30} />
-                    </View>
-                </View>
                 <Text style={styles.headerTitle}>Ratings</Text>
                 <Text style={styles.headerSubtitle}>Review your purchased school supplies</Text>
             </View>
@@ -336,37 +326,6 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.05,
         shadowRadius: 10,
         elevation: 4,
-    },
-    headerTopRow: {
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "space-between",
-        marginBottom: 12,
-    },
-    headerBrand: {
-        flex: 1,
-        marginHorizontal: 12,
-    },
-    headerBrandText: {
-        fontSize: 15,
-        fontWeight: "800",
-        color: "#0F5D3A",
-    },
-    headerBrandTag: {
-        marginTop: 2,
-        fontSize: 11,
-        color: "#6B7280",
-        fontWeight: "600",
-    },
-    headerLogo: {
-        width: 38,
-        height: 38,
-        borderRadius: 12,
-        backgroundColor: "#FFFFFF",
-        alignItems: "center",
-        justifyContent: "center",
-        borderWidth: 1,
-        borderColor: "#E5E7EB",
     },
     headerTitle: {
         fontSize: 26,
