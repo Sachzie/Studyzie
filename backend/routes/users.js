@@ -6,6 +6,7 @@ const multer = require("multer");
 const { v2: cloudinary } = require("cloudinary");
 const crypto = require("crypto");
 const https = require("https");
+const Promotion = require("../models/Promotion");
 
 const FILE_TYPE_MAP = {
   "image/png": "png",
@@ -82,6 +83,14 @@ const uploadImageToCloudinary = async (file) => {
     imageUrl: uploaded.secure_url,
     publicId: uploaded.public_id,
   };
+};
+
+const normalizePromoCode = (value) => (value || "").toString().trim().toUpperCase();
+
+const parseDiscountAmount = (value) => {
+  const amount = Number(value);
+  if (!Number.isFinite(amount)) return 0;
+  return Math.max(0, Math.min(amount, 100));
 };
 
 const fetchGoogleProfile = (accessToken) => {
@@ -504,18 +513,42 @@ router.post('/broadcast-promotion', async (req, res) => {
       return res.status(200).json({ success: true, message: 'No users with push tokens found', count: 0 });
     }
 
-    await sendPushNotification(
-      tokens,
-      title,
-      message,
-      { 
-        screen: 'PromotionDetail', 
-        promotion: promotionData || {},
-        timestamp: new Date().toISOString()
-      }
-    );
+    const normalizedCode = normalizePromoCode(promotionData?.discountCode);
+    const normalizedAmount = parseDiscountAmount(promotionData?.discountAmount);
+    const hasValidPromotion = Boolean(normalizedCode && normalizedAmount > 0);
 
-    res.status(200).json({ success: true, message: 'Broadcast sent successfully', count: tokens.length });
+    await Promotion.updateMany({ isActive: true }, { isActive: false });
+
+    let savedPromotion = null;
+    if (hasValidPromotion) {
+      savedPromotion = await Promotion.create({
+        title,
+        message,
+        discountCode: normalizedCode,
+        discountAmount: normalizedAmount,
+        isActive: true,
+      });
+    }
+
+    const notificationPayload = {
+      screen: hasValidPromotion ? 'PromotionDetail' : 'Home',
+      promotion: hasValidPromotion ? {
+        title,
+        message,
+        discountCode: normalizedCode,
+        discountAmount: normalizedAmount,
+      } : null,
+      timestamp: new Date().toISOString(),
+    };
+
+    await sendPushNotification(tokens, title, message, notificationPayload);
+
+    res.status(200).json({
+      success: true,
+      message: 'Broadcast sent successfully',
+      count: tokens.length,
+      promotionActive: Boolean(savedPromotion),
+    });
   } catch (error) {
     console.error('Broadcast error:', error);
     res.status(500).json({ success: false, error: error.message });

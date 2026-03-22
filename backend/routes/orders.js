@@ -1,6 +1,7 @@
 const Order = require('../models/Order');
 const OrderItem = require('../models/OrderItem');
 const User = require('../models/User');
+const Promotion = require('../models/Promotion');
 const express = require('express');
 const router = express.Router();
 const { sendPushNotification } = require('../utils/pushNotifications');
@@ -76,7 +77,29 @@ router.post('/', async (req,res)=>{
             return totalPrice
         }))
 
-        const totalPrice = totalPrices.reduce((a,b) => a +b , 0);
+        const subtotal = totalPrices.reduce((a,b) => a + b, 0);
+
+        const normalizePromoCode = (value) => (value || "").toString().trim().toUpperCase();
+        const promoCode = normalizePromoCode(req.body.promoCode);
+
+        let discountPercent = 0;
+        let discountValue = 0;
+        let appliedCode = "";
+
+        if (promoCode) {
+            const promotion = await Promotion.findOne({
+                isActive: true,
+                discountCode: promoCode,
+            }).sort({ createdAt: -1 });
+
+            if (promotion && (!promotion.endsAt || promotion.endsAt > new Date())) {
+                discountPercent = Number(promotion.discountAmount) || 0;
+                appliedCode = promotion.discountCode;
+                discountValue = subtotal * (discountPercent / 100);
+            }
+        }
+
+        const totalPrice = Math.max(subtotal - discountValue, 0);
 
         let order = new Order({
             orderItems: orderItemsIdsResolved,
@@ -87,7 +110,11 @@ router.post('/', async (req,res)=>{
             country: req.body.country,
             phone: req.body.phone,
             status: req.body.status,
+            subtotal: subtotal,
             totalPrice: totalPrice,
+            discountCode: appliedCode,
+            discountPercent: discountPercent,
+            discountValue: discountValue,
             user: req.body.user,
         })
         order = await order.save();

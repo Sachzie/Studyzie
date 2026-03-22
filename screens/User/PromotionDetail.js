@@ -16,8 +16,12 @@ const { width } = Dimensions.get("window");
 
 const PromotionDetail = ({ route, navigation }) => {
     const { promotion } = route.params || {};
+    const hasPromotion = Boolean(promotion?.discountCode && promotion?.discountAmount);
 
     const handleShare = async () => {
+        if (!hasPromotion) {
+            return;
+        }
         try {
             await Share.share({
                 message: `Check out this special offer at Studyzie! Use code ${promotion?.discountCode} for ${promotion?.discountAmount}% off!`,
@@ -34,41 +38,50 @@ const PromotionDetail = ({ route, navigation }) => {
                 style={styles.header}
             >
                 <Ionicons name="gift-outline" size={80} color="#FFFFFF" style={styles.headerIcon} />
-                <Text style={styles.headerTitle}>EXCLUSIVE OFFER</Text>
+                <Text style={styles.headerTitle}>{hasPromotion ? "EXCLUSIVE OFFER" : "PROMOTION UPDATE"}</Text>
             </LinearGradient>
 
             <View style={styles.content}>
                 <View style={styles.promoCard}>
-                    <Text style={styles.promoLabel}>Special Discount</Text>
-                    <Text style={styles.promoAmount}>{promotion?.discountAmount || "20"}% OFF</Text>
-                    
-                    <View style={styles.codeContainer}>
-                        <Text style={styles.codeLabel}>USE PROMO CODE</Text>
-                        <View style={styles.codeBox}>
-                            <Text style={styles.codeText}>{promotion?.discountCode || "WELCOME20"}</Text>
+                    <Text style={styles.promoLabel}>{promotion?.title || "Special Update"}</Text>
+                    <Text style={styles.promoAmount}>
+                        {hasPromotion ? `${promotion.discountAmount}% OFF` : "No active discount"}
+                    </Text>
+
+                    {hasPromotion ? (
+                        <View style={styles.codeContainer}>
+                            <Text style={styles.codeLabel}>USE PROMO CODE</Text>
+                            <View style={styles.codeBox}>
+                                <Text style={styles.codeText}>{promotion.discountCode}</Text>
+                            </View>
                         </View>
-                    </View>
+                    ) : null}
 
                     <Text style={styles.promoDescription}>
-                        Get amazing discounts on all your school supply needs. From notebooks to art materials, everything is now more affordable at Studyzie.
+                        {promotion?.message
+                            || (hasPromotion
+                                ? "Get amazing discounts on all your school supply needs. From notebooks to art materials, everything is now more affordable at Studyzie."
+                                : "There is no active promotion at the moment. Please check back soon.")}
                     </Text>
 
                     <View style={styles.divider} />
 
-                    <View style={styles.perksRow}>
-                        <View style={styles.perk}>
-                            <Ionicons name="checkmark-circle" size={20} color="#103B28" />
-                            <Text style={styles.perkText}>All Items</Text>
+                    {hasPromotion ? (
+                        <View style={styles.perksRow}>
+                            <View style={styles.perk}>
+                                <Ionicons name="checkmark-circle" size={20} color="#103B28" />
+                                <Text style={styles.perkText}>All Items</Text>
+                            </View>
+                            <View style={styles.perk}>
+                                <Ionicons name="checkmark-circle" size={20} color="#103B28" />
+                                <Text style={styles.perkText}>Limited Time</Text>
+                            </View>
+                            <View style={styles.perk}>
+                                <Ionicons name="checkmark-circle" size={20} color="#103B28" />
+                                <Text style={styles.perkText}>One Use</Text>
+                            </View>
                         </View>
-                        <View style={styles.perk}>
-                            <Ionicons name="checkmark-circle" size={20} color="#103B28" />
-                            <Text style={styles.perkText}>Limited Time</Text>
-                        </View>
-                        <View style={styles.perk}>
-                            <Ionicons name="checkmark-circle" size={20} color="#103B28" />
-                            <Text style={styles.perkText}>One Use</Text>
-                        </View>
-                    </View>
+                    ) : null}
                 </View>
 
                 <TouchableOpacity 
@@ -79,13 +92,15 @@ const PromotionDetail = ({ route, navigation }) => {
                     <Ionicons name="arrow-forward" size={20} color="#FFFFFF" />
                 </TouchableOpacity>
 
-                <TouchableOpacity 
-                    style={styles.shareButton}
-                    onPress={handleShare}
-                >
-                    <Ionicons name="share-social-outline" size={20} color="#103B28" />
-                    <Text style={styles.shareButtonText}>Share with friends</Text>
-                </TouchableOpacity>
+                {hasPromotion ? (
+                    <TouchableOpacity 
+                        style={styles.shareButton}
+                        onPress={handleShare}
+                    >
+                        <Ionicons name="share-social-outline" size={20} color="#103B28" />
+                        <Text style={styles.shareButtonText}>Share with friends</Text>
+                    </TouchableOpacity>
+                ) : null}
             </View>
         </ScrollView>
     );

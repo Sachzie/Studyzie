@@ -4,6 +4,7 @@ import { Ionicons } from "@expo/vector-icons";
 
 const PromotionModal = ({ visible, promotion, onClose, onView }) => {
     if (!promotion) return null;
+    const hasDiscount = Boolean(promotion?.discountCode && promotion?.discountAmount);
 
     return (
         <Modal visible={visible} transparent animationType="fade" statusBarTranslucent>
@@ -21,16 +22,20 @@ const PromotionModal = ({ visible, promotion, onClose, onView }) => {
                     ) : null}
 
                     <Text style={styles.title}>{promotion.title || "Special Offer"}</Text>
-                    <Text style={styles.subtitle}>{promotion.subtitle || "Limited-time discount just for you."}</Text>
+                    <Text style={styles.subtitle}>{promotion.subtitle || promotion.message || "Limited-time discount just for you."}</Text>
 
-                    <View style={styles.codeBlock}>
-                        <Text style={styles.codeLabel}>USE CODE</Text>
-                        <Text style={styles.codeText}>{promotion.discountCode || "STUDY20"}</Text>
-                    </View>
+                    {hasDiscount ? (
+                        <View style={styles.codeBlock}>
+                            <Text style={styles.codeLabel}>USE CODE</Text>
+                            <Text style={styles.codeText}>{promotion.discountCode}</Text>
+                        </View>
+                    ) : null}
 
                     <Text style={styles.description}>
                         {promotion.description ||
-                            `Enjoy ${promotion.discountAmount || 20}% off on selected school supplies.`}
+                            (hasDiscount
+                                ? `Enjoy ${promotion.discountAmount}% off on selected school supplies.`
+                                : "A new announcement is available from Studyzie.")}
                     </Text>
 
                     <View style={styles.actions}>

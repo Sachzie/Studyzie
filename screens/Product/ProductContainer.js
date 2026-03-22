@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useContext, useEffect, useRef, useMemo } from "react";
+import React, { useCallback, useState, useContext, useEffect, useRef } from "react";
 import { View, StyleSheet, ActivityIndicator, ScrollView, TouchableOpacity } from "react-native";
 import { Surface, Text, Searchbar, TextInput } from "react-native-paper";
 import { useFocusEffect, useNavigation, DrawerActions } from "@react-navigation/native";
@@ -14,6 +14,8 @@ import { fetchProducts, fetchCategories } from "../../backend/Redux/Actions/prod
 import { Ionicons } from "@expo/vector-icons";
 import StudyzieLogo from "../../Shared/StudyzieLogo";
 import PromotionModal from "../../Shared/PromotionModal";
+import axios from "axios";
+import { getPromotion, setPromotion, clearPromotion } from "../../backend/Context/Store/promotionStorage";
 
 const API_ORIGIN = baseURL.replace(/api\/v1\/?$/, "");
 
@@ -204,18 +206,8 @@ const ProductContainer = () => {
     const [notification, setNotification] = useState({ visible: false, message: '', type: '' });
     const [promoVisible, setPromoVisible] = useState(false);
     const justLoggedIn = useRef(true);
-
-    const homePromotion = useMemo(
-        () => ({
-            title: "Back to School Deals",
-            subtitle: "Save big on school essentials",
-            discountAmount: 20,
-            discountCode: "STUDY20",
-            description: "Limited-time offer on selected notebooks, pens, and art supplies.",
-            image: "https://images.pexels.com/photos/5088009/pexels-photo-5088009.jpeg",
-        }),
-        []
-    );
+    const [activePromotion, setActivePromotion] = useState(null);
+    const hasActivePromotion = Boolean(activePromotion?.discountCode && activePromotion?.discountAmount);
 
     useEffect(() => {
         if (context.stateUser.isAuthenticated && justLoggedIn.current) {
@@ -223,6 +215,32 @@ const ProductContainer = () => {
             justLoggedIn.current = false; // Reset after showing the notification
         }
     }, [context.stateUser.isAuthenticated]);
+
+    const loadPromotion = useCallback(async () => {
+        try {
+            const cached = await getPromotion();
+            if (cached?.discountCode && cached?.discountAmount) {
+                setActivePromotion(cached);
+            }
+        } catch (error) {
+            // ignore cache errors
+        }
+
+        try {
+            const response = await axios.get(`${baseURL}promotions/active`);
+            if (response?.data?.active && response.data.promotion?.discountCode && response.data.promotion?.discountAmount) {
+                setActivePromotion(response.data.promotion);
+                setPromotion(response.data.promotion);
+            } else {
+                setActivePromotion(null);
+                clearPromotion();
+            }
+        } catch (error) {
+            // keep cached promotion if fetch fails
+        } finally {
+            // no-op
+        }
+    }, []);
 
     const applyFilters = useCallback((sourceProducts, searchText, categoryId, minPriceInput, maxPriceInput) => {
         const parsePrice = (value) => {
@@ -316,7 +334,8 @@ const ProductContainer = () => {
 
             dispatch(fetchProducts());
             dispatch(fetchCategories());
-        }, [dispatch])
+            loadPromotion();
+        }, [dispatch, loadPromotion])
     );
 
     useEffect(() => {
@@ -359,12 +378,14 @@ const ProductContainer = () => {
                 onClose={() => setNotification({ ...notification, visible: false })} 
             />
             <PromotionModal
-                visible={promoVisible}
-                promotion={homePromotion}
+                visible={promoVisible && hasActivePromotion}
+                promotion={hasActivePromotion ? activePromotion : null}
                 onClose={() => setPromoVisible(false)}
                 onView={() => {
                     setPromoVisible(false);
-                    navigation.navigate("PromotionDetail", { promotion: homePromotion });
+                    if (hasActivePromotion) {
+                        navigation.navigate("PromotionDetail", { promotion: activePromotion });
+                    }
                 }}
             />
             <View style={styles.header}>
@@ -380,14 +401,16 @@ const ProductContainer = () => {
                         <Text style={styles.brandTag}>School Supplies</Text>
                     </View>
                     <View style={styles.headerActions}>
-                        <TouchableOpacity
-                            style={styles.notifButton}
-                            onPress={() => setPromoVisible(true)}
-                            accessibilityLabel="View promotions"
-                        >
-                            <Ionicons name="notifications" size={20} color={colors.primary} />
-                            <View style={styles.notifDot} />
-                        </TouchableOpacity>
+                        {hasActivePromotion ? (
+                            <TouchableOpacity
+                                style={styles.notifButton}
+                                onPress={() => setPromoVisible(true)}
+                                accessibilityLabel="View promotions"
+                            >
+                                <Ionicons name="notifications" size={20} color={colors.primary} />
+                                <View style={styles.notifDot} />
+                            </TouchableOpacity>
+                        ) : null}
                         <View style={styles.headerLogo}>
                             <StudyzieLogo size={32} />
                         </View>

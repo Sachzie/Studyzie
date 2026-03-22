@@ -35,14 +35,29 @@ const resolveImageUri = (rawUri) => {
     return `${API_ORIGIN}/public/uploads/${rawUri}`;
 };
 
+const formatPeso = (value) =>
+    `\u20B1${Number(value || 0).toLocaleString("en-PH", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+    })}`;
+
 const Confirm = (props) => {
     const finalOrder = props.route.params;
     const dispatch = useDispatch()
     let navigation = useNavigation()
+    const order = finalOrder?.order?.order;
+    const orderItems = Array.isArray(order?.orderItems) ? order.orderItems : [];
+    const subtotal = Number(order?.subtotal) || orderItems.reduce((sum, item) => {
+        const quantity = Number(item?.quantity) || 1;
+        return sum + (Number(item?.price) || 0) * quantity;
+    }, 0);
+    const discountValue = Number(order?.discountValue) || (order?.discountPercent ? subtotal * (Number(order.discountPercent) / 100) : 0);
+    const total = Number(order?.totalPrice) || Math.max(subtotal - discountValue, 0);
+    const hasDiscount = Boolean(order?.discountCode && discountValue > 0);
 
     const confirmOrder = async () => {
-        const order = finalOrder?.order?.order;
-        if (!order) {
+            const order = finalOrder?.order?.order;
+            if (!order) {
             Toast.show({
                 topOffset: 60,
                 type: "error",
@@ -149,6 +164,27 @@ const Confirm = (props) => {
                                 )
                             })}
                         </Surface>
+
+                        <Surface style={styles.sectionSurface}>
+                            <Text style={styles.sectionTitle}>Summary</Text>
+                            <Divider style={styles.divider} />
+                            <View style={styles.summaryRow}>
+                                <Text style={styles.summaryLabel}>Subtotal</Text>
+                                <Text style={styles.summaryValue}>{formatPeso(subtotal)}</Text>
+                            </View>
+                            <View style={styles.summaryRow}>
+                                <Text style={styles.summaryLabel}>Discount</Text>
+                                <Text style={styles.summaryValue}>- {formatPeso(discountValue)}</Text>
+                            </View>
+                            {hasDiscount ? (
+                                <Text style={styles.promoNote}>Promo applied: {order.discountCode}</Text>
+                            ) : null}
+                            <Divider style={styles.divider} />
+                            <View style={styles.summaryRow}>
+                                <Text style={styles.summaryTotalLabel}>Total</Text>
+                                <Text style={styles.summaryTotalValue}>{formatPeso(total)}</Text>
+                            </View>
+                        </Surface>
                     </View>
                 ) : null}
                 
@@ -248,6 +284,39 @@ const styles = StyleSheet.create({
         fontSize: 12,
         color: "#6B7280",
         fontWeight: "600",
+    },
+    summaryRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        marginBottom: 6,
+    },
+    summaryLabel: {
+        fontSize: 13,
+        color: "#6B7280",
+        fontWeight: "600",
+    },
+    summaryValue: {
+        fontSize: 13,
+        color: "#111827",
+        fontWeight: "700",
+    },
+    summaryTotalLabel: {
+        fontSize: 15,
+        color: "#111827",
+        fontWeight: "800",
+    },
+    summaryTotalValue: {
+        fontSize: 16,
+        color: "#103B28",
+        fontWeight: "800",
+    },
+    promoNote: {
+        fontSize: 12,
+        color: "#16A34A",
+        fontWeight: "600",
+        marginTop: 4,
+        marginBottom: 6,
     },
     buttonContainer: {
         alignItems: "center",

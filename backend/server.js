@@ -6,6 +6,7 @@ const usersRouter = require('./routes/users');
 const categoriesRouter = require("./routes/categories");
 const productsRouter = require("./routes/products");
 const ordersRouter = require("./routes/orders");
+const promotionsRouter = require("./routes/promotions");
 
 dotenv.config();
 
@@ -22,6 +23,7 @@ app.use(`${API_PREFIX}/users`, usersRouter);
 app.use(`${API_PREFIX}/categories`, categoriesRouter);
 app.use(`${API_PREFIX}/products`, productsRouter);
 app.use(`${API_PREFIX}/orders`, ordersRouter);
+app.use(`${API_PREFIX}/promotions`, promotionsRouter);
 
 app.get(API_PREFIX, (req, res) => {
   res.json({

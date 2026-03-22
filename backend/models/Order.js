@@ -37,6 +37,19 @@ const orderSchema = mongoose.Schema({
     totalPrice: {
         type: Number,
     },
+    subtotal: {
+        type: Number,
+    },
+    discountCode: {
+        type: String,
+        trim: true,
+    },
+    discountPercent: {
+        type: Number,
+    },
+    discountValue: {
+        type: Number,
+    },
     user: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',

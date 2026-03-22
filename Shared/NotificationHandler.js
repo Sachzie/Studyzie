@@ -8,6 +8,7 @@ import axios from 'axios';
 import baseURL from '../screens/assets/common/baseurl';
 import AuthGlobal from '../backend/Context/Store/AuthGlobal';
 import { getToken } from '../backend/Context/Store/tokenStorage';
+import { setPromotion, clearPromotion } from '../backend/Context/Store/promotionStorage';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -38,18 +39,28 @@ const NotificationHandler = () => {
     setupNotifications();
 
     notificationListener.current = Notifications.addNotificationReceivedListener(notification => {
-      console.log('🔔 Notification Received:', notification.request.content.title);
+      console.log('???? Notification Received:', notification.request.content.title);
+      const promo = notification.request?.content?.data?.promotion;
+      if (promo?.discountCode && promo?.discountAmount) {
+        setPromotion(promo);
+      }
+      if (promo === null) {
+        clearPromotion();
+      }
     });
 
     responseListener.current = Notifications.addNotificationResponseReceivedListener(response => {
       const { data } = response.notification.request.content;
-      console.log('👆 Notification Tapped:', data?.screen);
+      console.log('???? Notification Tapped:', data?.screen);
 
       if (data?.screen === 'My Orders') {
         navigation.navigate('My Orders', { orderId: data?.orderId });
       } else if (data?.screen === 'Orders') {
         navigation.navigate('AdminTabs', { screen: 'Orders' });
       } else if (data?.screen === 'PromotionDetail') {
+        if (data?.promotion?.discountCode && data?.promotion?.discountAmount) {
+          setPromotion(data.promotion);
+        }
         navigation.navigate('PromotionDetail', { promotion: data?.promotion });
       }
     });
