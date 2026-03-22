@@ -58,6 +58,16 @@ const resolveItemImageSource = (item) => {
     return { uri: FALLBACK_IMAGE };
 };
 
+const getItemPrice = (item) => {
+    const direct = Number(item?.price);
+    if (Number.isFinite(direct) && direct > 0) return direct;
+    const nested = Number(item?.product?.price);
+    if (Number.isFinite(nested)) return nested;
+    return 0;
+};
+
+const getItemName = (item) => item?.name || item?.product?.name || "Item";
+
 const Confirm = (props) => {
     const finalOrder = props.route.params;
     const dispatch = useDispatch()
@@ -66,7 +76,7 @@ const Confirm = (props) => {
     const orderItems = Array.isArray(order?.orderItems) ? order.orderItems : [];
     const subtotal = Number(order?.subtotal) || orderItems.reduce((sum, item) => {
         const quantity = Number(item?.quantity) || 1;
-        return sum + (Number(item?.price) || 0) * quantity;
+        return sum + getItemPrice(item) * quantity;
     }, 0);
     const discountValue = Number(order?.discountValue) || (order?.discountPercent ? subtotal * (Number(order.discountPercent) / 100) : 0);
     const total = Number(order?.totalPrice) || Math.max(subtotal - discountValue, 0);
@@ -172,8 +182,8 @@ const Confirm = (props) => {
                                             source={resolveItemImageSource(item)}
                                         />
                                         <View style={styles.itemInfo}>
-                                            <Text style={styles.itemName}>{item.name}</Text>
-                                            <Text style={styles.itemPrice}>{formatPeso(item.price)}</Text>
+                                            <Text style={styles.itemName}>{getItemName(item)}</Text>
+                                            <Text style={styles.itemPrice}>{formatPeso(getItemPrice(item))}</Text>
                                             <Text style={styles.itemQty}>Qty: {quantity}</Text>
                                         </View>
                                     </View>
