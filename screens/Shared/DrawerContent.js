@@ -46,7 +46,7 @@ const DrawerContent = (props) => {
     const handleLogout = async () => {
         try {
             await logoutUser(context.dispatch, userId);
-            navigation.navigate('Login');
+            navigation.navigate('Studyzie');
         } catch (error) {
             console.log("Logout failed:", error.message);
         }

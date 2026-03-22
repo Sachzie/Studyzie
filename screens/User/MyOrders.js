@@ -26,7 +26,7 @@ const MyOrders = (props) => {
                 context.stateUser.isAuthenticated === false ||
                 context.stateUser.isAuthenticated === null
             ) {
-                props.navigation.navigate("Login");
+                props.navigation.navigate("User", { screen: "Login" });
                 return;
             }
 
