@@ -4,17 +4,13 @@
   "main": "index.js",
   "scripts": {
     "start": "expo start",
-    "start:local": "npm run update-ngrok-url && expo start",
     "backend": "cd backend && npm run dev",
     "dev": "npm start",
-    "dev:local": "concurrently \"npm run backend\" \"npm run start:local\"",
     "android": "expo start --android",
     "build:android": "eas build --platform android --profile preview",
     "build:apk": "eas build -p android --profile preview",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "update-ngrok-url": "node backend/scripts/updateNgrokUrl.js",
-    "watch-ngrok-url": "node backend/scripts/updateNgrokUrl.js --watch",
     "postinstall": "node scripts/ensureGoogleServices.js"
   },
   "dependencies": {
