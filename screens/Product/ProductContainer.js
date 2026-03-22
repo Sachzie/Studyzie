@@ -414,6 +414,13 @@ const ProductContainer = () => {
             />
             <View style={styles.header}>
                 <View style={styles.headerTopRow}>
+                    <TouchableOpacity
+                        onPress={() => navigation.dispatch(DrawerActions.openDrawer())}
+                        style={styles.menuButton}
+                        accessibilityLabel="Open menu"
+                    >
+                        <Ionicons name="menu" size={22} color={colors.white} />
+                    </TouchableOpacity>
                     <View style={styles.brandWrap}>
                         <Text style={styles.brandText}>Studyzie</Text>
                         <Text style={styles.brandTag}>School Supplies</Text>
@@ -580,6 +587,17 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "space-between",
         marginBottom: 16,
+    },
+    menuButton: {
+        width: 44,
+        height: 44,
+        borderRadius: 12,
+        backgroundColor: 'rgba(255, 255, 255, 0.2)',
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.3)',
+        alignItems: "center",
+        justifyContent: "center",
+        marginRight: 12,
     },
     brandWrap: {
         flex: 1,
