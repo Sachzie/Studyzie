@@ -471,7 +471,7 @@ const styles = StyleSheet.create({
     },
     content: {
         padding: 16,
-        paddingBottom: 30,
+        paddingBottom: 140,
     },
     profileCard: {
         backgroundColor: "#FFFFFF",
@@ -645,6 +645,7 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.2,
         shadowRadius: 8,
         elevation: 4,
+        marginBottom: 10,
     },
     logoutButtonText: {
         color: "#FFFFFF",

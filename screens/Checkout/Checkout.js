@@ -112,8 +112,9 @@ const Checkout = (props) => {
         }
 
         try {
+            const userId = context?.stateUser?.user?.userId || context?.stateUser?.user?.id || context?.stateUser?.user?.sub;
             const response = await axios.get(`${baseURL}promotions/validate`, {
-                params: { code }
+                params: { code, userId }
             })
             if (response?.data?.valid && response.data.promotion?.discountAmount) {
                 setPromoPercent(Number(response.data.promotion.discountAmount) || 0)

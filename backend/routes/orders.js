@@ -86,16 +86,37 @@ router.post('/', async (req,res)=>{
         let discountValue = 0;
         let appliedCode = "";
 
+        let appliedPromotionId = null;
+
         if (promoCode) {
             const promotion = await Promotion.findOne({
                 isActive: true,
                 discountCode: promoCode,
             }).sort({ createdAt: -1 });
 
-            if (promotion && (!promotion.endsAt || promotion.endsAt > new Date())) {
-                discountPercent = Number(promotion.discountAmount) || 0;
-                appliedCode = promotion.discountCode;
-                discountValue = subtotal * (discountPercent / 100);
+            const now = new Date();
+            const isActiveNow = promotion
+                && (!promotion.startsAt || promotion.startsAt <= now)
+                && (!promotion.endsAt || promotion.endsAt >= now);
+
+            if (promotion && isActiveNow) {
+                const hasTotalLimit = promotion.maxRedemptions && promotion.redeemedCount >= promotion.maxRedemptions;
+                let hasUserLimit = false;
+
+                if (promotion.maxRedemptionsPerUser && req.body.user) {
+                    const userRedemptions = await Order.countDocuments({
+                        user: req.body.user,
+                        discountCode: promotion.discountCode,
+                    });
+                    hasUserLimit = userRedemptions >= promotion.maxRedemptionsPerUser;
+                }
+
+                if (!hasTotalLimit && !hasUserLimit) {
+                    discountPercent = Number(promotion.discountAmount) || 0;
+                    appliedCode = promotion.discountCode;
+                    discountValue = subtotal * (discountPercent / 100);
+                    appliedPromotionId = promotion._id;
+                }
             }
         }
 
@@ -118,6 +139,13 @@ router.post('/', async (req,res)=>{
             user: req.body.user,
         })
         order = await order.save();
+
+        if (appliedPromotionId) {
+            await Promotion.updateOne(
+                { _id: appliedPromotionId },
+                { $inc: { redeemedCount: 1 } }
+            );
+        }
 
         if(!order)
         return res.status(400).send('the order cannot be created!')

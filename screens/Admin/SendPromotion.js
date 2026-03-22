@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import {
     View,
     Text,
@@ -15,6 +15,7 @@ import axios from "axios";
 import baseURL from "../assets/common/baseurl";
 import Toast from "react-native-toast-message";
 import { getToken } from "../../backend/Context/Store/tokenStorage";
+import { useFocusEffect } from "@react-navigation/native";
 
 const SendPromotion = ({ navigation }) => {
     const [title, setTitle] = useState("");
@@ -22,6 +23,31 @@ const SendPromotion = ({ navigation }) => {
     const [discountCode, setDiscountCode] = useState("");
     const [discountAmount, setDiscountAmount] = useState("");
     const [loading, setLoading] = useState(false);
+    const [startsAt, setStartsAt] = useState("");
+    const [endsAt, setEndsAt] = useState("");
+    const [maxRedemptions, setMaxRedemptions] = useState("");
+    const [maxRedemptionsPerUser, setMaxRedemptionsPerUser] = useState("");
+    const [activePromotion, setActivePromotion] = useState(null);
+    const [endingPromo, setEndingPromo] = useState(false);
+
+    const loadActivePromotion = useCallback(async () => {
+        try {
+            const response = await axios.get(`${baseURL}promotions/active`);
+            if (response?.data?.active) {
+                setActivePromotion(response.data.promotion);
+            } else {
+                setActivePromotion(null);
+            }
+        } catch (error) {
+            setActivePromotion(null);
+        }
+    }, []);
+
+    useFocusEffect(
+        useCallback(() => {
+            loadActivePromotion();
+        }, [loadActivePromotion])
+    );
 
     const handleBroadcast = async () => {
         if (!title || !message) {
@@ -50,6 +76,10 @@ const SendPromotion = ({ navigation }) => {
                     promotionData: {
                         discountCode,
                         discountAmount,
+                        startsAt,
+                        endsAt,
+                        maxRedemptions,
+                        maxRedemptionsPerUser,
                         type: 'promotion'
                     }
                 },
@@ -62,6 +92,7 @@ const SendPromotion = ({ navigation }) => {
                     text1: "Success",
                     text2: `Promotion sent to ${response.data.count} devices!`,
                 });
+                loadActivePromotion();
                 navigation.goBack();
             }
         } catch (error) {
@@ -73,6 +104,30 @@ const SendPromotion = ({ navigation }) => {
             });
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleEndPromotion = async () => {
+        setEndingPromo(true);
+        try {
+            const token = await getToken();
+            await axios.post(`${baseURL}promotions/deactivate`, {}, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            Toast.show({
+                type: "success",
+                text1: "Promotion Ended",
+                text2: "Active promotion has been deactivated.",
+            });
+            setActivePromotion(null);
+        } catch (error) {
+            Toast.show({
+                type: "error",
+                text1: "Error",
+                text2: "Could not end promotion.",
+            });
+        } finally {
+            setEndingPromo(false);
         }
     };
 
@@ -89,6 +144,30 @@ const SendPromotion = ({ navigation }) => {
                 </View>
 
                 <View style={styles.form}>
+                    {activePromotion ? (
+                        <View style={styles.activePromoCard}>
+                            <Text style={styles.activePromoTitle}>Active Promotion</Text>
+                            <Text style={styles.activePromoText}>
+                                {activePromotion.title} â€¢ {activePromotion.discountCode} ({activePromotion.discountAmount}%)
+                            </Text>
+                            {activePromotion.endsAt ? (
+                                <Text style={styles.activePromoSub}>
+                                    Ends: {new Date(activePromotion.endsAt).toLocaleDateString("en-US")}
+                                </Text>
+                            ) : null}
+                            <TouchableOpacity
+                                style={[styles.endPromoButton, endingPromo && styles.disabledButton]}
+                                onPress={handleEndPromotion}
+                                disabled={endingPromo}
+                            >
+                                {endingPromo ? (
+                                    <ActivityIndicator color="#FFFFFF" />
+                                ) : (
+                                    <Text style={styles.endPromoText}>End Promotion</Text>
+                                )}
+                            </TouchableOpacity>
+                        </View>
+                    ) : null}
                     <View style={styles.inputGroup}>
                         <Text style={styles.label}>Notification Title</Text>
                         <TextInput
@@ -134,6 +213,48 @@ const SendPromotion = ({ navigation }) => {
                             keyboardType="numeric"
                             value={discountAmount}
                             onChangeText={setDiscountAmount}
+                        />
+                    </View>
+
+                    <View style={styles.inputGroup}>
+                        <Text style={styles.label}>Start Date (optional)</Text>
+                        <TextInput
+                            style={styles.input}
+                            placeholder="YYYY-MM-DD"
+                            value={startsAt}
+                            onChangeText={setStartsAt}
+                        />
+                    </View>
+
+                    <View style={styles.inputGroup}>
+                        <Text style={styles.label}>End Date (optional)</Text>
+                        <TextInput
+                            style={styles.input}
+                            placeholder="YYYY-MM-DD"
+                            value={endsAt}
+                            onChangeText={setEndsAt}
+                        />
+                    </View>
+
+                    <View style={styles.inputGroup}>
+                        <Text style={styles.label}>Max Redemptions (optional)</Text>
+                        <TextInput
+                            style={styles.input}
+                            placeholder="e.g. 100"
+                            keyboardType="numeric"
+                            value={maxRedemptions}
+                            onChangeText={setMaxRedemptions}
+                        />
+                    </View>
+
+                    <View style={styles.inputGroup}>
+                        <Text style={styles.label}>Max Redemptions Per User (optional)</Text>
+                        <TextInput
+                            style={styles.input}
+                            placeholder="e.g. 1"
+                            keyboardType="numeric"
+                            value={maxRedemptionsPerUser}
+                            onChangeText={setMaxRedemptionsPerUser}
                         />
                     </View>
 
@@ -191,6 +312,42 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.05,
         shadowRadius: 8,
         elevation: 2,
+    },
+    activePromoCard: {
+        backgroundColor: "#F0FDF4",
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: "#86EFAC",
+        padding: 16,
+        marginBottom: 20,
+    },
+    activePromoTitle: {
+        fontSize: 14,
+        fontWeight: "700",
+        color: "#166534",
+        marginBottom: 6,
+    },
+    activePromoText: {
+        fontSize: 13,
+        color: "#14532D",
+        fontWeight: "600",
+    },
+    activePromoSub: {
+        marginTop: 4,
+        fontSize: 12,
+        color: "#4D7C0F",
+    },
+    endPromoButton: {
+        marginTop: 12,
+        backgroundColor: "#DC2626",
+        borderRadius: 10,
+        paddingVertical: 10,
+        alignItems: "center",
+    },
+    endPromoText: {
+        color: "#FFFFFF",
+        fontWeight: "700",
+        fontSize: 13,
     },
     inputGroup: {
         marginBottom: 20,

@@ -93,6 +93,19 @@ const parseDiscountAmount = (value) => {
   return Math.max(0, Math.min(amount, 100));
 };
 
+const parseLimit = (value) => {
+  const amount = Number(value);
+  if (!Number.isFinite(amount)) return 0;
+  return Math.max(0, Math.floor(amount));
+};
+
+const parseDateValue = (value) => {
+  if (!value) return null;
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return parsed;
+};
+
 const fetchGoogleProfile = (accessToken) => {
   return new Promise((resolve, reject) => {
     const options = {
@@ -520,6 +533,10 @@ router.post('/broadcast-promotion', async (req, res) => {
 
     const normalizedCode = normalizePromoCode(promotionData?.discountCode);
     const normalizedAmount = parseDiscountAmount(promotionData?.discountAmount);
+    const startsAt = parseDateValue(promotionData?.startsAt);
+    const endsAt = parseDateValue(promotionData?.endsAt);
+    const maxRedemptions = parseLimit(promotionData?.maxRedemptions);
+    const maxRedemptionsPerUser = parseLimit(promotionData?.maxRedemptionsPerUser);
     const hasValidPromotion = Boolean(normalizedCode && normalizedAmount > 0);
 
     await Promotion.updateMany({ isActive: true }, { isActive: false });
@@ -531,6 +548,10 @@ router.post('/broadcast-promotion', async (req, res) => {
         message,
         discountCode: normalizedCode,
         discountAmount: normalizedAmount,
+        startsAt: startsAt || undefined,
+        endsAt: endsAt || undefined,
+        maxRedemptions: maxRedemptions || undefined,
+        maxRedemptionsPerUser: maxRedemptionsPerUser || undefined,
         isActive: true,
       });
     }
@@ -542,6 +563,10 @@ router.post('/broadcast-promotion', async (req, res) => {
         message,
         discountCode: normalizedCode,
         discountAmount: normalizedAmount,
+        startsAt: startsAt || null,
+        endsAt: endsAt || null,
+        maxRedemptions: maxRedemptions || null,
+        maxRedemptionsPerUser: maxRedemptionsPerUser || null,
       } : null,
       timestamp: new Date().toISOString(),
     };
