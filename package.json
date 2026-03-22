@@ -14,7 +14,8 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "update-ngrok-url": "node backend/scripts/updateNgrokUrl.js",
-    "watch-ngrok-url": "node backend/scripts/updateNgrokUrl.js --watch"
+    "watch-ngrok-url": "node backend/scripts/updateNgrokUrl.js --watch",
+    "postinstall": "node scripts/ensureGoogleServices.js"
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "^2.2.0",
