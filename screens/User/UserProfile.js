@@ -1,12 +1,13 @@
 import React, { useContext, useState, useCallback } from "react";
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, Image, Alert, Platform } from "react-native";
-import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import { useFocusEffect, useNavigation, DrawerActions } from "@react-navigation/native";
 import axios from "axios";
 import baseURL from "../assets/common/baseurl";
 import AuthGlobal from "../../backend/Context/Store/AuthGlobal";
 import { logoutUser } from "../../backend/Context/Actions/Auth.actions";
 import { Ionicons } from "@expo/vector-icons";
 import { getToken } from "../../backend/Context/Store/tokenStorage";
+import StudyzieLogo from "../../Shared/StudyzieLogo";
 
 import * as ImagePicker from "expo-image-picker";
 import Toast from "react-native-toast-message";
@@ -249,6 +250,21 @@ const UserProfile = () => {
 
     return (
         <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
+            <View style={styles.topBar}>
+                <TouchableOpacity
+                    style={styles.menuButton}
+                    onPress={() => navigation.dispatch(DrawerActions.openDrawer())}
+                >
+                    <Ionicons name="menu" size={22} color="#103B28" />
+                </TouchableOpacity>
+                <View style={styles.topBarTitle}>
+                    <Text style={styles.topBarText}>My Account</Text>
+                    <Text style={styles.topBarSubtitle}>Profile details</Text>
+                </View>
+                <View style={styles.topBarLogo}>
+                    <StudyzieLogo size={30} />
+                </View>
+            </View>
             <View style={styles.profileCard}>
                 <View style={styles.avatar}>
                 {userProfile?.image ? (
@@ -310,6 +326,56 @@ const styles = StyleSheet.create({
     content: {
         padding: 16,
         paddingBottom: 30,
+    },
+    topBar: {
+        backgroundColor: "#FFFFFF",
+        borderRadius: 16,
+        paddingHorizontal: 14,
+        paddingVertical: 12,
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        marginBottom: 16,
+        borderWidth: 1,
+        borderColor: "#E5E7EB",
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.05,
+        shadowRadius: 8,
+        elevation: 2,
+    },
+    menuButton: {
+        width: 38,
+        height: 38,
+        borderRadius: 12,
+        backgroundColor: "#F3F4F6",
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    topBarTitle: {
+        flex: 1,
+        marginHorizontal: 12,
+    },
+    topBarText: {
+        fontSize: 16,
+        fontWeight: "800",
+        color: "#111827",
+    },
+    topBarSubtitle: {
+        marginTop: 2,
+        fontSize: 11,
+        color: "#6B7280",
+        fontWeight: "600",
+    },
+    topBarLogo: {
+        width: 38,
+        height: 38,
+        borderRadius: 12,
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: "#FFFFFF",
+        borderWidth: 1,
+        borderColor: "#E5E7EB",
     },
     profileCard: {
         backgroundColor: "#FFFFFF",

@@ -1,13 +1,15 @@
 import React, { useContext, useState, useCallback, useMemo, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, StatusBar, TouchableOpacity } from 'react-native';
 import axios from 'axios';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, DrawerActions } from '@react-navigation/native';
 import { useDispatch, useSelector } from 'react-redux';
 import AuthGlobal from '../../backend/Context/Store/AuthGlobal';
 import baseURL from '../assets/common/baseurl';
 import OrderCard from '../Shared/OrderCard';
 import { fetchUserOrders } from '../../backend/Redux/Actions/orderActions';
 import { getToken } from '../../backend/Context/Store/tokenStorage';
+import { Ionicons } from "@expo/vector-icons";
+import StudyzieLogo from "../../Shared/StudyzieLogo";
 
 const MyOrders = (props) => {
     const context = useContext(AuthGlobal);
@@ -85,6 +87,21 @@ const MyOrders = (props) => {
         <View style={styles.container}>
             <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
             <View style={styles.header}>
+                <View style={styles.headerTopRow}>
+                    <TouchableOpacity
+                        style={styles.menuButton}
+                        onPress={() => props.navigation.dispatch(DrawerActions.openDrawer())}
+                    >
+                        <Ionicons name="menu" size={22} color="#0F5D3A" />
+                    </TouchableOpacity>
+                    <View style={styles.headerBrand}>
+                        <Text style={styles.headerBrandText}>Studyzie</Text>
+                        <Text style={styles.headerBrandTag}>Your Orders</Text>
+                    </View>
+                    <View style={styles.headerLogo}>
+                        <StudyzieLogo size={30} />
+                    </View>
+                </View>
                 <View>
                     <Text style={styles.headerTitle}>Orders</Text>
                     <Text style={styles.headerSubtitle}>Your school supply purchases</Text>
@@ -161,9 +178,46 @@ const styles = StyleSheet.create({
         elevation: 5,
         zIndex: 10,
         marginBottom: 12,
+        justifyContent: "center",
+    },
+    headerTopRow: {
         flexDirection: "row",
-        justifyContent: "space-between",
         alignItems: "center",
+        justifyContent: "space-between",
+        marginBottom: 12,
+    },
+    menuButton: {
+        width: 38,
+        height: 38,
+        borderRadius: 12,
+        backgroundColor: "#F3F4F6",
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    headerBrand: {
+        flex: 1,
+        marginHorizontal: 12,
+    },
+    headerBrandText: {
+        fontSize: 15,
+        fontWeight: "800",
+        color: "#0F5D3A",
+    },
+    headerBrandTag: {
+        marginTop: 2,
+        fontSize: 11,
+        color: "#6B7280",
+        fontWeight: "600",
+    },
+    headerLogo: {
+        width: 38,
+        height: 38,
+        borderRadius: 12,
+        backgroundColor: "#FFFFFF",
+        alignItems: "center",
+        justifyContent: "center",
+        borderWidth: 1,
+        borderColor: "#E5E7EB",
     },
     headerTitle: {
         fontSize: 26,

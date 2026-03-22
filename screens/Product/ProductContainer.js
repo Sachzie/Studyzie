@@ -1,7 +1,7 @@
 import React, { useCallback, useState, useContext, useEffect, useRef } from "react";
 import { View, StyleSheet, ActivityIndicator, ScrollView, TouchableOpacity } from "react-native";
 import { Surface, Text, Searchbar, TextInput } from "react-native-paper";
-import { useFocusEffect } from "@react-navigation/native";
+import { useFocusEffect, useNavigation, DrawerActions } from "@react-navigation/native";
 import { useDispatch, useSelector } from "react-redux";
 import ProductList from "./ProductList";
 import CategoryFilter from "./CategoryFilter";
@@ -11,6 +11,8 @@ import colors from "../assets/common/colors";
 import Notification from "../../Shared/Notification";
 import AuthGlobal from "../../backend/Context/Store/AuthGlobal";
 import { fetchProducts, fetchCategories } from "../../backend/Redux/Actions/productActions";
+import { Ionicons } from "@expo/vector-icons";
+import StudyzieLogo from "../../Shared/StudyzieLogo";
 
 const API_ORIGIN = baseURL.replace(/api\/v1\/?$/, "");
 
@@ -179,6 +181,7 @@ const normalizeCategory = (item, index) => ({
 
 const ProductContainer = () => {
     const context = useContext(AuthGlobal);
+    const navigation = useNavigation();
     const dispatch = useDispatch();
     const productsState = useSelector((state) => state.products);
     const {
@@ -342,6 +345,21 @@ const ProductContainer = () => {
                 onClose={() => setNotification({ ...notification, visible: false })} 
             />
             <View style={styles.header}>
+                <View style={styles.headerTopRow}>
+                    <TouchableOpacity
+                        onPress={() => navigation.dispatch(DrawerActions.openDrawer())}
+                        style={styles.menuButton}
+                    >
+                        <Ionicons name="menu" size={24} color={colors.primary} />
+                    </TouchableOpacity>
+                    <View style={styles.brandWrap}>
+                        <Text style={styles.brandText}>Studyzie</Text>
+                        <Text style={styles.brandTag}>School Supplies</Text>
+                    </View>
+                    <View style={styles.headerLogo}>
+                        <StudyzieLogo size={32} />
+                    </View>
+                </View>
                 <View style={styles.headerTextWrap}>
                     <Text style={styles.headerTitle}>Studyzie Store</Text>
                     <Text style={styles.headerSubtitle}>Search and filter by category or price</Text>
@@ -483,6 +501,47 @@ const styles = StyleSheet.create({
         elevation: 5,
         marginBottom: 16,
         zIndex: 10,
+    },
+    headerTopRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        marginBottom: 12,
+    },
+    menuButton: {
+        width: 40,
+        height: 40,
+        borderRadius: 12,
+        backgroundColor: colors.inputBg,
+        justifyContent: "center",
+        alignItems: "center",
+        borderWidth: 1,
+        borderColor: colors.light,
+    },
+    brandWrap: {
+        flex: 1,
+        marginHorizontal: 12,
+    },
+    brandText: {
+        fontSize: 16,
+        fontWeight: "800",
+        color: colors.text,
+    },
+    brandTag: {
+        fontSize: 11,
+        color: colors.textLight,
+        marginTop: 2,
+        fontWeight: "600",
+    },
+    headerLogo: {
+        width: 40,
+        height: 40,
+        borderRadius: 12,
+        backgroundColor: "#FFFFFF",
+        alignItems: "center",
+        justifyContent: "center",
+        borderWidth: 1,
+        borderColor: colors.light,
     },
     headerTextWrap: {
         marginBottom: 10,
