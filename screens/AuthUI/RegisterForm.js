@@ -39,7 +39,7 @@ const RegisterForm = ({ onToggle }) => {
 
     const [request, response, promptAsync] = Google.useAuthRequest(
         {
-            androidClientId: "389416302400-1fjocq4mkov74o6uaqr8h07dd0il0013.apps.googleusercontent.com",
+            androidClientId: "389416302400-kbkq1su4lo0gp35gutlrha4mq5f4mbgv.apps.googleusercontent.com",
             webClientId: "389416302400-g2us37q2kh02t56eca11ncbqj6g3kljp.apps.googleusercontent.com",
         },
         { scheme: "studyzie" }
