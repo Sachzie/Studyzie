@@ -9,9 +9,13 @@ const axios = require('axios');
  */
 const sendPushNotification = async (pushTokens, title, body, data = {}) => {
   const tokens = Array.isArray(pushTokens) ? pushTokens : [pushTokens];
-  
+
+  const isExpoPushToken = (token) =>
+    typeof token === "string" &&
+    (token.startsWith("ExponentPushToken") || token.startsWith("ExpoPushToken"));
+
   const messages = tokens
-    .filter(token => token && token.startsWith('ExponentPushToken'))
+    .filter(isExpoPushToken)
     .map(token => ({
       to: token,
       sound: 'default',
