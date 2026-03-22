@@ -9,6 +9,8 @@ import {
     ScrollView,
     KeyboardAvoidingView,
     Platform,
+    Modal,
+    Pressable,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import axios from "axios";
@@ -16,6 +18,7 @@ import baseURL from "../assets/common/baseurl";
 import Toast from "react-native-toast-message";
 import { getToken } from "../../backend/Context/Store/tokenStorage";
 import { useFocusEffect } from "@react-navigation/native";
+import DateTimePicker from "@react-native-community/datetimepicker";
 
 const SendPromotion = ({ navigation }) => {
     const [title, setTitle] = useState("");
@@ -23,12 +26,51 @@ const SendPromotion = ({ navigation }) => {
     const [discountCode, setDiscountCode] = useState("");
     const [discountAmount, setDiscountAmount] = useState("");
     const [loading, setLoading] = useState(false);
-    const [startsAt, setStartsAt] = useState("");
-    const [endsAt, setEndsAt] = useState("");
+    const [startsAt, setStartsAt] = useState(null);
+    const [endsAt, setEndsAt] = useState(null);
     const [maxRedemptions, setMaxRedemptions] = useState("");
     const [maxRedemptionsPerUser, setMaxRedemptionsPerUser] = useState("");
     const [activePromotion, setActivePromotion] = useState(null);
     const [endingPromo, setEndingPromo] = useState(false);
+    const [activePicker, setActivePicker] = useState(null);
+    const [tempDate, setTempDate] = useState(new Date());
+
+    const formatDate = (value) => {
+        if (!value) return "";
+        try {
+            return new Date(value).toLocaleDateString("en-CA");
+        } catch (error) {
+            return "";
+        }
+    };
+
+    const openDatePicker = (type) => {
+        const current = type === "start" ? startsAt : endsAt;
+        setTempDate(current ? new Date(current) : new Date());
+        setActivePicker(type);
+    };
+
+    const applySelectedDate = (type, dateValue) => {
+        if (!dateValue) return;
+
+        if (type === "start") {
+            setStartsAt(dateValue);
+            if (endsAt && new Date(endsAt) < dateValue) {
+                setEndsAt(null);
+            }
+            return;
+        }
+
+        if (startsAt && dateValue < new Date(startsAt)) {
+            Toast.show({
+                type: "error",
+                text1: "Invalid date",
+                text2: "End date cannot be before the start date.",
+            });
+            return;
+        }
+        setEndsAt(dateValue);
+    };
 
     const loadActivePromotion = useCallback(async () => {
         try {
@@ -76,8 +118,8 @@ const SendPromotion = ({ navigation }) => {
                     promotionData: {
                         discountCode,
                         discountAmount,
-                        startsAt,
-                        endsAt,
+                        startsAt: startsAt ? new Date(startsAt).toISOString() : "",
+                        endsAt: endsAt ? new Date(endsAt).toISOString() : "",
                         maxRedemptions,
                         maxRedemptionsPerUser,
                         type: 'promotion'
@@ -218,22 +260,28 @@ const SendPromotion = ({ navigation }) => {
 
                     <View style={styles.inputGroup}>
                         <Text style={styles.label}>Start Date (optional)</Text>
-                        <TextInput
-                            style={styles.input}
-                            placeholder="YYYY-MM-DD"
-                            value={startsAt}
-                            onChangeText={setStartsAt}
-                        />
+                        <TouchableOpacity
+                            style={styles.dateField}
+                            onPress={() => openDatePicker("start")}
+                        >
+                            <Text style={[styles.dateText, !startsAt && styles.datePlaceholder]}>
+                                {startsAt ? formatDate(startsAt) : "Select start date"}
+                            </Text>
+                            <Ionicons name="calendar-outline" size={18} color="#6B7280" />
+                        </TouchableOpacity>
                     </View>
 
                     <View style={styles.inputGroup}>
                         <Text style={styles.label}>End Date (optional)</Text>
-                        <TextInput
-                            style={styles.input}
-                            placeholder="YYYY-MM-DD"
-                            value={endsAt}
-                            onChangeText={setEndsAt}
-                        />
+                        <TouchableOpacity
+                            style={styles.dateField}
+                            onPress={() => openDatePicker("end")}
+                        >
+                            <Text style={[styles.dateText, !endsAt && styles.datePlaceholder]}>
+                                {endsAt ? formatDate(endsAt) : "Select end date"}
+                            </Text>
+                            <Ionicons name="calendar-outline" size={18} color="#6B7280" />
+                        </TouchableOpacity>
                     </View>
 
                     <View style={styles.inputGroup}>
@@ -274,6 +322,58 @@ const SendPromotion = ({ navigation }) => {
                     </TouchableOpacity>
                 </View>
             </ScrollView>
+            {activePicker ? (
+                Platform.OS === "ios" ? (
+                    <Modal
+                        transparent
+                        animationType="fade"
+                        visible
+                        onRequestClose={() => setActivePicker(null)}
+                    >
+                        <Pressable style={styles.modalOverlay} onPress={() => setActivePicker(null)}>
+                            <Pressable style={styles.modalCard} onPress={() => {}}>
+                                <Text style={styles.modalTitle}>
+                                    {activePicker === "start" ? "Select start date" : "Select end date"}
+                                </Text>
+                                <DateTimePicker
+                                    value={tempDate}
+                                    mode="date"
+                                    display="spinner"
+                                    onChange={(event, selectedDate) => {
+                                        if (selectedDate) {
+                                            setTempDate(selectedDate);
+                                        }
+                                    }}
+                                />
+                                <TouchableOpacity
+                                    style={styles.modalButton}
+                                    onPress={() => {
+                                        applySelectedDate(activePicker, tempDate);
+                                        setActivePicker(null);
+                                    }}
+                                >
+                                    <Text style={styles.modalButtonText}>Done</Text>
+                                </TouchableOpacity>
+                            </Pressable>
+                        </Pressable>
+                    </Modal>
+                ) : (
+                    <DateTimePicker
+                        value={tempDate}
+                        mode="date"
+                        display="calendar"
+                        onChange={(event, selectedDate) => {
+                            if (event?.type === "dismissed") {
+                                setActivePicker(null);
+                                return;
+                            }
+                            const nextDate = selectedDate || tempDate;
+                            applySelectedDate(activePicker, nextDate);
+                            setActivePicker(null);
+                        }}
+                    />
+                )
+            ) : null}
         </KeyboardAvoidingView>
     );
 };
@@ -365,6 +465,24 @@ const styles = StyleSheet.create({
         fontSize: 16,
         color: "#111827",
     },
+    dateField: {
+        backgroundColor: "#F3F4F6",
+        borderRadius: 10,
+        paddingVertical: 12,
+        paddingHorizontal: 14,
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+    },
+    dateText: {
+        fontSize: 15,
+        color: "#111827",
+        fontWeight: "600",
+    },
+    datePlaceholder: {
+        color: "#9CA3AF",
+        fontWeight: "500",
+    },
     textArea: {
         height: 100,
         textAlignVertical: "top",
@@ -399,6 +517,37 @@ const styles = StyleSheet.create({
     },
     disabledButton: {
         opacity: 0.7,
+    },
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: "rgba(15, 23, 42, 0.45)",
+        justifyContent: "center",
+        alignItems: "center",
+        padding: 20,
+    },
+    modalCard: {
+        width: "100%",
+        borderRadius: 16,
+        backgroundColor: "#FFFFFF",
+        padding: 20,
+    },
+    modalTitle: {
+        fontSize: 16,
+        fontWeight: "700",
+        color: "#111827",
+        marginBottom: 12,
+    },
+    modalButton: {
+        marginTop: 16,
+        backgroundColor: "#103B28",
+        borderRadius: 12,
+        paddingVertical: 12,
+        alignItems: "center",
+    },
+    modalButtonText: {
+        color: "#FFFFFF",
+        fontWeight: "700",
+        fontSize: 14,
     },
 });
 
