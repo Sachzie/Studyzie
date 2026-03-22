@@ -221,6 +221,9 @@ const Confirm = (props) => {
                                             <Text style={styles.itemName}>{getItemName(item)}</Text>
                                             <Text style={styles.itemPrice}>{formatPeso(getItemPrice(item))}</Text>
                                             <Text style={styles.itemQty}>Qty: {quantity}</Text>
+                                            <Text style={styles.itemLineTotal}>
+                                                Line Total: {formatPeso(getItemPrice(item) * quantity)}
+                                            </Text>
                                         </View>
                                     </View>
                                 )
@@ -346,6 +349,12 @@ const styles = StyleSheet.create({
         fontSize: 12,
         color: "#6B7280",
         fontWeight: "600",
+    },
+    itemLineTotal: {
+        marginTop: 2,
+        fontSize: 12,
+        color: "#111827",
+        fontWeight: "700",
     },
     summaryRow: {
         flexDirection: "row",
