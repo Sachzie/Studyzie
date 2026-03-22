@@ -55,12 +55,19 @@ const NotificationHandler = () => {
     });
 
     return () => {
-      if (notificationListener.current) {
-        Notifications.removeNotificationSubscription(notificationListener.current);
-      }
-      if (responseListener.current) {
-        Notifications.removeNotificationSubscription(responseListener.current);
-      }
+      const removeSubscription = (subscription) => {
+        if (!subscription) return;
+        if (typeof subscription.remove === "function") {
+          subscription.remove();
+          return;
+        }
+        if (typeof Notifications.removeNotificationSubscription === "function") {
+          Notifications.removeNotificationSubscription(subscription);
+        }
+      };
+
+      removeSubscription(notificationListener.current);
+      removeSubscription(responseListener.current);
     };
   }, [context.stateUser.isAuthenticated]);
 
