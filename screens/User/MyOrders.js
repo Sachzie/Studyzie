@@ -1,4 +1,4 @@
-import React, { useContext, useState, useCallback, useMemo } from 'react';
+import React, { useContext, useState, useCallback, useMemo, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, StatusBar, TouchableOpacity } from 'react-native';
 import axios from 'axios';
 import { useFocusEffect } from '@react-navigation/native';
@@ -16,7 +16,7 @@ const MyOrders = (props) => {
     const dispatch = useDispatch();
     const ordersState = useSelector((state) => state.orders);
     const { userList: orders, userLoading: loading } = ordersState;
-    const route = props.route;
+    const route = props.route || {};
 
     useFocusEffect(
         useCallback(() => {
@@ -127,7 +127,9 @@ const MyOrders = (props) => {
                             displayName={profile?.name || ""}
                         />
                     )}
-                    keyExtractor={(item) => item.id}
+                    keyExtractor={(item, index) =>
+                        String(item?.id || item?._id || item?._id?.$oid || `${item?.dateOrdered || "order"}-${index}`)
+                    }
                     contentContainerStyle={styles.listContent}
                     ListEmptyComponent={
                         <View style={styles.center}>
