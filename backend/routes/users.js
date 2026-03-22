@@ -360,12 +360,21 @@ router.delete('/:id', (req, res) => {
     });
 });
 
-// PUT update user push token
+// PUT update user push token (Update or Remove stale tokens)
 router.put('/:id/push-token', async (req, res) => {
   try {
+    const { pushToken } = req.body;
+    
+    // Logic to handle stale tokens: 
+    // If pushToken is provided, it updates. If empty/null, it removes (clears stale token).
+    // We also check if this token is already used by another user and clear it from them to avoid duplicates.
+    if (pushToken) {
+      await User.updateMany({ pushToken: pushToken }, { pushToken: '' });
+    }
+
     const user = await User.findByIdAndUpdate(
       req.params.id,
-      { pushToken: req.body.pushToken },
+      { pushToken: pushToken || '' },
       { new: true }
     );
 
@@ -373,7 +382,7 @@ router.put('/:id/push-token', async (req, res) => {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
 
-    res.send({ success: true, pushToken: user.pushToken });
+    res.send({ success: true, pushToken: user.pushToken, message: pushToken ? 'Token updated' : 'Token removed' });
   } catch (error) {
     return res.status(500).json({ success: false, error: error.message });
   }

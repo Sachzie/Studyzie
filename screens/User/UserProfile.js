@@ -226,7 +226,8 @@ const UserProfile = () => {
     };
 
     const handleLogout = () => {
-        logoutUser(context.dispatch);
+        const userId = context.stateUser.user.userId || context.stateUser.user.id || context.stateUser.user.sub;
+        logoutUser(context.dispatch, userId);
         navigation.navigate("Login");
     };
 

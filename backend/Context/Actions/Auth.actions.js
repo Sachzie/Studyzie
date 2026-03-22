@@ -3,6 +3,8 @@ import Toast from "react-native-toast-message"
 import baseURL from "../../../screens/assets/common/baseurl";
 import { setToken, removeToken } from "../Store/tokenStorage";
 
+import axios from "axios";
+
 export const SET_CURRENT_USER = "SET_CURRENT_USER";
 
 export const loginUser = async (user, dispatch) => {
@@ -35,7 +37,16 @@ export const loginUser = async (user, dispatch) => {
 };
 
 
-export const logoutUser = (dispatch) => {
+export const logoutUser = async (dispatch, userId) => {
+    if (userId) {
+        try {
+            const token = await setToken(); // Actually we need to get token, but the helper might be just for storage.
+            // Clear the push token from the user record when they log out to prevent stale notifications
+            await axios.put(`${baseURL}users/${userId}/push-token`, { pushToken: '' });
+        } catch (e) {
+            console.log("Could not clear push token on logout", e.message);
+        }
+    }
     removeToken();
     dispatch(setCurrentUser({}))
 }
