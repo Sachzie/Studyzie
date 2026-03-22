@@ -34,6 +34,7 @@ const SendPromotion = ({ navigation }) => {
     const [endingPromo, setEndingPromo] = useState(false);
     const [activePicker, setActivePicker] = useState(null);
     const [tempDate, setTempDate] = useState(new Date());
+    const placeholderTextColor = "#111827";
 
     const formatDate = (value) => {
         if (!value) return "";
@@ -215,6 +216,7 @@ const SendPromotion = ({ navigation }) => {
                         <TextInput
                             style={styles.input}
                             placeholder="e.g. Flash Sale! ⚡"
+                            placeholderTextColor={placeholderTextColor}
                             value={title}
                             onChangeText={setTitle}
                         />
@@ -225,6 +227,7 @@ const SendPromotion = ({ navigation }) => {
                         <TextInput
                             style={[styles.input, styles.textArea]}
                             placeholder="Describe your promotion here..."
+                            placeholderTextColor={placeholderTextColor}
                             multiline
                             numberOfLines={4}
                             value={message}
@@ -241,6 +244,7 @@ const SendPromotion = ({ navigation }) => {
                         <TextInput
                             style={styles.input}
                             placeholder="e.g. STUDY20"
+                            placeholderTextColor={placeholderTextColor}
                             value={discountCode}
                             onChangeText={setDiscountCode}
                             autoCapitalize="characters"
@@ -252,6 +256,7 @@ const SendPromotion = ({ navigation }) => {
                         <TextInput
                             style={styles.input}
                             placeholder="e.g. 20"
+                            placeholderTextColor={placeholderTextColor}
                             keyboardType="numeric"
                             value={discountAmount}
                             onChangeText={setDiscountAmount}
@@ -289,6 +294,7 @@ const SendPromotion = ({ navigation }) => {
                         <TextInput
                             style={styles.input}
                             placeholder="e.g. 100"
+                            placeholderTextColor={placeholderTextColor}
                             keyboardType="numeric"
                             value={maxRedemptions}
                             onChangeText={setMaxRedemptions}
@@ -300,6 +306,7 @@ const SendPromotion = ({ navigation }) => {
                         <TextInput
                             style={styles.input}
                             placeholder="e.g. 1"
+                            placeholderTextColor={placeholderTextColor}
                             keyboardType="numeric"
                             value={maxRedemptionsPerUser}
                             onChangeText={setMaxRedemptionsPerUser}
@@ -480,7 +487,7 @@ const styles = StyleSheet.create({
         fontWeight: "600",
     },
     datePlaceholder: {
-        color: "#9CA3AF",
+        color: "#111827",
         fontWeight: "500",
     },
     textArea: {
