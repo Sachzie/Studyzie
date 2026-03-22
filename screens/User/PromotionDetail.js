@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
     View,
     Text,
@@ -11,12 +11,44 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from 'expo-linear-gradient';
+import axios from "axios";
+import baseURL from "../assets/common/baseurl";
 
 const { width } = Dimensions.get("window");
 
 const PromotionDetail = ({ route, navigation }) => {
-    const { promotion } = route.params || {};
+    const { promotion: routePromotion } = route.params || {};
+    const [promotion, setPromotion] = useState(routePromotion || null);
     const hasPromotion = Boolean(promotion?.discountCode && promotion?.discountAmount);
+
+    useEffect(() => {
+        let isMounted = true;
+
+        if (routePromotion) {
+            setPromotion(routePromotion);
+            return () => {
+                isMounted = false;
+            };
+        }
+
+        const fetchActivePromotion = async () => {
+            try {
+                const response = await axios.get(`${baseURL}promotions/active`);
+                if (!isMounted) return;
+                if (response?.data?.active) {
+                    setPromotion(response.data.promotion);
+                }
+            } catch (error) {
+                // ignore fetch errors
+            }
+        };
+
+        fetchActivePromotion();
+
+        return () => {
+            isMounted = false;
+        };
+    }, [routePromotion]);
 
     const handleShare = async () => {
         if (!hasPromotion) {

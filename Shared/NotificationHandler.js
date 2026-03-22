@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useContext } from 'react';
+import React, { useEffect, useRef, useContext, useCallback } from 'react';
 import * as Notifications from 'expo-notifications';
 import { useNavigation } from '@react-navigation/native';
 import { Platform, DeviceEventEmitter } from 'react-native';
@@ -23,6 +23,39 @@ const NotificationHandler = () => {
   const context = useContext(AuthGlobal);
   const notificationListener = useRef();
   const responseListener = useRef();
+  const handledResponseId = useRef(null);
+
+  const handleNotificationResponse = useCallback(
+    (response) => {
+      const request = response?.notification?.request;
+      const responseId = request?.identifier;
+      if (responseId && handledResponseId.current === responseId) {
+        return;
+      }
+      if (responseId) {
+        handledResponseId.current = responseId;
+      }
+
+      const { data } = request?.content || {};
+      if (!data) return;
+
+      if (data?.screen === 'My Orders') {
+        navigation.navigate('My Orders', { orderId: data?.orderId });
+      } else if (data?.screen === 'Orders') {
+        navigation.navigate('AdminTabs', { screen: 'Orders' });
+      } else if (data?.screen === 'PromotionDetail') {
+        if (data?.promotion?.discountCode && data?.promotion?.discountAmount) {
+          setPromotion(data.promotion);
+          DeviceEventEmitter.emit("promotion:update", data.promotion);
+        } else if (data?.promotion === null) {
+          clearPromotion();
+          DeviceEventEmitter.emit("promotion:update", null);
+        }
+        navigation.navigate('PromotionDetail', { promotion: data?.promotion });
+      }
+    },
+    [navigation]
+  );
 
   useEffect(() => {
     const setupNotifications = async () => {
@@ -51,25 +84,20 @@ const NotificationHandler = () => {
       }
     });
 
-    responseListener.current = Notifications.addNotificationResponseReceivedListener(response => {
-      const { data } = response.notification.request.content;
-      console.log('???? Notification Tapped:', data?.screen);
-
-      if (data?.screen === 'My Orders') {
-        navigation.navigate('My Orders', { orderId: data?.orderId });
-      } else if (data?.screen === 'Orders') {
-        navigation.navigate('AdminTabs', { screen: 'Orders' });
-      } else if (data?.screen === 'PromotionDetail') {
-        if (data?.promotion?.discountCode && data?.promotion?.discountAmount) {
-          setPromotion(data.promotion);
-          DeviceEventEmitter.emit("promotion:update", data.promotion);
-        } else if (data?.promotion === null) {
-          clearPromotion();
-          DeviceEventEmitter.emit("promotion:update", null);
+    const checkLastResponse = async () => {
+      try {
+        const lastResponse = await Notifications.getLastNotificationResponseAsync();
+        if (lastResponse) {
+          handleNotificationResponse(lastResponse);
         }
-        navigation.navigate('PromotionDetail', { promotion: data?.promotion });
+      } catch (error) {
+        // ignore
       }
-    });
+    };
+
+    checkLastResponse();
+
+    responseListener.current = Notifications.addNotificationResponseReceivedListener(handleNotificationResponse);
 
     return () => {
       const removeSubscription = (subscription) => {
@@ -86,7 +114,7 @@ const NotificationHandler = () => {
       removeSubscription(notificationListener.current);
       removeSubscription(responseListener.current);
     };
-  }, [context.stateUser.isAuthenticated]);
+  }, [context.stateUser.isAuthenticated, handleNotificationResponse]);
 
   const savePushTokenToBackend = async (pushToken) => {
     const userId = context.stateUser.user.userId || context.stateUser.user.id || context.stateUser.user.sub;
