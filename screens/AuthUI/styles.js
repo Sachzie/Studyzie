@@ -196,6 +196,52 @@ const styles = StyleSheet.create({
         fontSize: 11, 
         fontWeight: '600'
     },
+    dividerRow: {
+        width: '100%',
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginTop: 14,
+        marginBottom: 10,
+    },
+    dividerLine: {
+        flex: 1,
+        height: 1,
+        backgroundColor: 'rgba(164, 144, 124, 0.35)',
+    },
+    dividerText: {
+        marginHorizontal: 10,
+        color: colors.secondary,
+        fontSize: 10,
+        fontWeight: '700',
+        letterSpacing: 0.6,
+    },
+    googleButton: {
+        width: '100%',
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: 'rgba(255,255,255,0.95)',
+        borderRadius: 12,
+        paddingVertical: 12,
+        borderWidth: 1,
+        borderColor: 'rgba(164, 144, 124, 0.35)',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.08,
+        shadowRadius: 6,
+        elevation: 2,
+    },
+    googleButtonText: {
+        fontSize: 14,
+        fontWeight: '700',
+        color: colors.text,
+    },
+    googleIcon: {
+        marginRight: 8,
+    },
+    disabledButton: {
+        opacity: 0.6,
+    },
     imageContainer: {
         width: 90, 
         height: 90, 

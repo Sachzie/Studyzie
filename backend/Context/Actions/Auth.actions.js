@@ -36,6 +36,30 @@ export const loginUser = async (user, dispatch) => {
     }
 };
 
+export const loginWithGoogle = async (accessToken, dispatch) => {
+    if (!accessToken) {
+        return Promise.reject(new Error("Google access token is required"));
+    }
+
+    try {
+        const response = await axios.post(`${baseURL}users/google`, { accessToken });
+        const token = response?.data?.token;
+
+        if (!token) {
+            throw new Error("No token returned from Google login.");
+        }
+
+        await setToken(token);
+        const decoded = jwtDecode(token);
+        dispatch(setCurrentUser(decoded));
+        return response.data;
+    } catch (err) {
+        await removeToken();
+        dispatch(setCurrentUser({}));
+        return Promise.reject(err);
+    }
+};
+
 
 export const logoutUser = async (dispatch, userId) => {
     if (userId) {

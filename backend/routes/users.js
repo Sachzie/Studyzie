@@ -4,6 +4,8 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const multer = require("multer");
 const { v2: cloudinary } = require("cloudinary");
+const crypto = require("crypto");
+const https = require("https");
 
 const FILE_TYPE_MAP = {
   "image/png": "png",
@@ -80,6 +82,35 @@ const uploadImageToCloudinary = async (file) => {
     imageUrl: uploaded.secure_url,
     publicId: uploaded.public_id,
   };
+};
+
+const fetchGoogleProfile = (accessToken) => {
+  return new Promise((resolve, reject) => {
+    const options = {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    };
+
+    https
+      .get("https://www.googleapis.com/oauth2/v3/userinfo", options, (res) => {
+        let data = "";
+        res.on("data", (chunk) => {
+          data += chunk;
+        });
+        res.on("end", () => {
+          if (res.statusCode < 200 || res.statusCode >= 300) {
+            return reject(new Error("Invalid Google access token"));
+          }
+          try {
+            resolve(JSON.parse(data));
+          } catch (error) {
+            reject(error);
+          }
+        });
+      })
+      .on("error", reject);
+  });
 };
 
 // GET all users
@@ -342,6 +373,75 @@ router.post('/login', async (req, res) => {
     }
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message || 'Login failed' });
+  }
+});
+
+// POST Google login/register
+router.post('/google', async (req, res) => {
+  try {
+    const { accessToken } = req.body || {};
+    if (!accessToken) {
+      return res.status(400).json({ success: false, message: 'Google access token is required' });
+    }
+
+    let profile;
+    try {
+      profile = await fetchGoogleProfile(accessToken);
+    } catch (error) {
+      return res.status(401).json({ success: false, message: 'Invalid Google token' });
+    }
+
+    if (!profile?.email) {
+      return res.status(400).json({ success: false, message: 'Google profile missing email' });
+    }
+
+    const secret = process.env.JWT_SECRET;
+    if (!secret) {
+      return res.status(500).json({
+        success: false,
+        message: 'Server authentication is not configured. Set JWT_SECRET.'
+      });
+    }
+
+    let user = await User.findOne({ email: profile.email });
+
+    if (!user) {
+      const randomPassword = crypto.randomBytes(32).toString("hex");
+      user = new User({
+        name: profile.name || profile.given_name || "Studyzie User",
+        email: profile.email,
+        passwordHash: bcrypt.hashSync(randomPassword, 10),
+        phone: req.body.phone || "0000000000",
+        image: profile.picture || "",
+        isAdmin: false,
+      });
+      user = await user.save();
+    } else {
+      const updates = {};
+      if (!user.image && profile.picture) updates.image = profile.picture;
+      if (profile.name && profile.name !== user.name) updates.name = profile.name;
+      if (Object.keys(updates).length) {
+        user = await User.findByIdAndUpdate(user._id, updates, { new: true });
+      }
+    }
+
+    const token = jwt.sign(
+      {
+        userId: user.id,
+        isAdmin: user.isAdmin,
+      },
+      secret,
+      { expiresIn: '1d' }
+    );
+
+    return res.status(200).send({
+      user: user.email,
+      token,
+      userId: user.id,
+      isAdmin: user.isAdmin,
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message || 'Google login failed' });
   }
 });
 

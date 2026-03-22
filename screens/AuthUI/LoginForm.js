@@ -1,11 +1,16 @@
 import React, { useContext, useState, useEffect } from "react";
-import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, Image } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, ActivityIndicator } from "react-native";
 import AuthGlobal from "../../backend/Context/Store/AuthGlobal";
-import { loginUser } from "../../backend/Context/Actions/Auth.actions";
+import { loginUser, loginWithGoogle } from "../../backend/Context/Actions/Auth.actions";
 import { styles, colors } from "./styles";
 import { Ionicons } from "@expo/vector-icons";
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
+import StudyzieLogo from "../../Shared/StudyzieLogo";
+import * as Google from "expo-auth-session/providers/google";
+import * as WebBrowser from "expo-web-browser";
+
+WebBrowser.maybeCompleteAuthSession();
 
 const LoginForm = ({ onToggle }) => {
     const context = useContext(AuthGlobal);
@@ -13,6 +18,26 @@ const LoginForm = ({ onToggle }) => {
     const [password, setPassword] = useState("");
     const [error, setError] = useState("");
     const [isLoading, setIsLoading] = useState(false);
+    const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+
+    const [request, response, promptAsync] = Google.useAuthRequest(
+        {
+            androidClientId: "389416302400-1fjocq4mkov74o6uaqr8h07dd0il0013.apps.googleusercontent.com",
+            webClientId: "389416302400-g2us37q2kh02t56eca11ncbqj6g3kljp.apps.googleusercontent.com",
+        },
+        { scheme: "studyzie" }
+    );
+
+    useEffect(() => {
+        if (response?.type === "success") {
+            const token = response?.authentication?.accessToken;
+            if (token) {
+                handleGoogleLogin(token);
+            } else {
+                setError("Google login failed. Please try again.");
+            }
+        }
+    }, [response]);
 
     const handleSubmit = async () => {
         if (!email.trim() || !password.trim()) {
@@ -31,15 +56,23 @@ const LoginForm = ({ onToggle }) => {
         }
     };
 
+    const handleGoogleLogin = async (accessToken) => {
+        setError("");
+        setIsGoogleLoading(true);
+        try {
+            await loginWithGoogle(accessToken, context.dispatch);
+        } catch (err) {
+            setError("Google login failed. Please try again.");
+        } finally {
+            setIsGoogleLoading(false);
+        }
+    };
+
     return (
         <View style={styles.card}>
             {/* Logo and text removed from here as they are better placed outside or simplified */}
             <Animated.View entering={FadeInUp.delay(200).duration(1000)} style={styles.logoContainer}>
-                <Image 
-                    source={require("../assets/Logo.png")} 
-                    style={styles.logo}
-                    resizeMode="contain"
-                />
+                <StudyzieLogo size={70} />
             </Animated.View>
 
             <Animated.Text entering={FadeInDown.delay(300).duration(1000)} style={styles.title}>Welcome Back</Animated.Text>
@@ -89,7 +122,30 @@ const LoginForm = ({ onToggle }) => {
                 </TouchableOpacity>
             </Animated.View>
 
-            <Animated.View entering={FadeInDown.delay(800).duration(1000)} style={styles.toggleContainer}>
+            <Animated.View entering={FadeInDown.delay(800).duration(1000)} style={styles.dividerRow}>
+                <View style={styles.dividerLine} />
+                <Text style={styles.dividerText}>OR CONTINUE WITH</Text>
+                <View style={styles.dividerLine} />
+            </Animated.View>
+
+            <Animated.View entering={FadeInDown.delay(900).duration(1000)} style={{ width: '100%' }}>
+                <TouchableOpacity
+                    style={[styles.googleButton, (!request || isGoogleLoading) && styles.disabledButton]}
+                    onPress={() => promptAsync()}
+                    disabled={!request || isGoogleLoading}
+                >
+                    {isGoogleLoading ? (
+                        <ActivityIndicator color={colors.primary} />
+                    ) : (
+                        <>
+                            <Ionicons name="logo-google" size={18} color="#DB4437" style={styles.googleIcon} />
+                            <Text style={styles.googleButtonText}>Continue with Google</Text>
+                        </>
+                    )}
+                </TouchableOpacity>
+            </Animated.View>
+
+            <Animated.View entering={FadeInDown.delay(1000).duration(1000)} style={styles.toggleContainer}>
                 <Text style={styles.toggleText}>Don't have an account?</Text>
                 <TouchableOpacity onPress={onToggle} style={{ padding: 10 }}>
                     <Text style={styles.toggleButton}>Sign Up</Text>
