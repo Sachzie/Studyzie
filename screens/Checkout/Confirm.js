@@ -42,6 +42,22 @@ const formatPeso = (value) =>
         maximumFractionDigits: 2,
     })}`;
 
+const resolveItemImageSource = (item) => {
+    if (item?.imageSource) {
+        return item.imageSource;
+    }
+    if (item?.product?.imageSource) {
+        return item.product.imageSource;
+    }
+
+    const imageUri = resolveImageUri(item?.image || item?.product?.image || "");
+    if (imageUri) {
+        return { uri: imageUri };
+    }
+
+    return { uri: FALLBACK_IMAGE };
+};
+
 const Confirm = (props) => {
     const finalOrder = props.route.params;
     const dispatch = useDispatch()
@@ -153,13 +169,11 @@ const Confirm = (props) => {
                                     <View key={item.id || Math.random()} style={styles.itemRow}>
                                         <Avatar.Image 
                                             size={50} 
-                                            source={{
-                                                uri: resolveImageUri(item?.image || "") || FALLBACK_IMAGE
-                                            }} 
+                                            source={resolveItemImageSource(item)}
                                         />
                                         <View style={styles.itemInfo}>
                                             <Text style={styles.itemName}>{item.name}</Text>
-                                            <Text style={styles.itemPrice}>$ {item.price}</Text>
+                                            <Text style={styles.itemPrice}>{formatPeso(item.price)}</Text>
                                             <Text style={styles.itemQty}>Qty: {quantity}</Text>
                                         </View>
                                     </View>
