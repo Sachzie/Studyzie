@@ -19,12 +19,6 @@ services:
         sync: false
       - key: CLOUDINARY_API_SECRET
         sync: false
-      - key: JWT_SECRET
-        sync: false
-      - key: JWT_EXPIRES_TIME
-        value: 70d
-      - key: COOKIE_EXPIRES_TIME
-        value: 7
       - key: SMTP_HOST
         sync: false
       - key: SMTP_PORT
