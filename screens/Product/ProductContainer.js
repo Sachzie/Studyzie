@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useContext, useEffect, useRef } from "react";
+import React, { useCallback, useState, useContext, useEffect, useRef, useMemo } from "react";
 import { View, StyleSheet, ActivityIndicator, ScrollView, TouchableOpacity } from "react-native";
 import { Surface, Text, Searchbar, TextInput } from "react-native-paper";
 import { useFocusEffect, useNavigation, DrawerActions } from "@react-navigation/native";
@@ -13,6 +13,7 @@ import AuthGlobal from "../../backend/Context/Store/AuthGlobal";
 import { fetchProducts, fetchCategories } from "../../backend/Redux/Actions/productActions";
 import { Ionicons } from "@expo/vector-icons";
 import StudyzieLogo from "../../Shared/StudyzieLogo";
+import PromotionModal from "../../Shared/PromotionModal";
 
 const API_ORIGIN = baseURL.replace(/api\/v1\/?$/, "");
 
@@ -201,7 +202,20 @@ const ProductContainer = () => {
     const [maxPrice, setMaxPrice] = useState("");
     const [notice, setNotice] = useState("");
     const [notification, setNotification] = useState({ visible: false, message: '', type: '' });
+    const [promoVisible, setPromoVisible] = useState(false);
     const justLoggedIn = useRef(true);
+
+    const homePromotion = useMemo(
+        () => ({
+            title: "Back to School Deals",
+            subtitle: "Save big on school essentials",
+            discountAmount: 20,
+            discountCode: "STUDY20",
+            description: "Limited-time offer on selected notebooks, pens, and art supplies.",
+            image: "https://images.pexels.com/photos/5088009/pexels-photo-5088009.jpeg",
+        }),
+        []
+    );
 
     useEffect(() => {
         if (context.stateUser.isAuthenticated && justLoggedIn.current) {
@@ -344,6 +358,15 @@ const ProductContainer = () => {
                 type={notification.type} 
                 onClose={() => setNotification({ ...notification, visible: false })} 
             />
+            <PromotionModal
+                visible={promoVisible}
+                promotion={homePromotion}
+                onClose={() => setPromoVisible(false)}
+                onView={() => {
+                    setPromoVisible(false);
+                    navigation.navigate("PromotionDetail", { promotion: homePromotion });
+                }}
+            />
             <View style={styles.header}>
                 <View style={styles.headerTopRow}>
                     <TouchableOpacity
@@ -356,8 +379,18 @@ const ProductContainer = () => {
                         <Text style={styles.brandText}>Studyzie</Text>
                         <Text style={styles.brandTag}>School Supplies</Text>
                     </View>
-                    <View style={styles.headerLogo}>
-                        <StudyzieLogo size={32} />
+                    <View style={styles.headerActions}>
+                        <TouchableOpacity
+                            style={styles.notifButton}
+                            onPress={() => setPromoVisible(true)}
+                            accessibilityLabel="View promotions"
+                        >
+                            <Ionicons name="notifications" size={20} color={colors.primary} />
+                            <View style={styles.notifDot} />
+                        </TouchableOpacity>
+                        <View style={styles.headerLogo}>
+                            <StudyzieLogo size={32} />
+                        </View>
                     </View>
                 </View>
                 <View style={styles.headerTextWrap}>
@@ -542,6 +575,32 @@ const styles = StyleSheet.create({
         justifyContent: "center",
         borderWidth: 1,
         borderColor: colors.light,
+    },
+    headerActions: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 10,
+    },
+    notifButton: {
+        width: 38,
+        height: 38,
+        borderRadius: 12,
+        backgroundColor: colors.inputBg,
+        borderWidth: 1,
+        borderColor: colors.light,
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    notifDot: {
+        position: "absolute",
+        top: 8,
+        right: 8,
+        width: 8,
+        height: 8,
+        borderRadius: 4,
+        backgroundColor: "#EF4444",
+        borderWidth: 1,
+        borderColor: "#FFFFFF",
     },
     headerTextWrap: {
         marginBottom: 10,
