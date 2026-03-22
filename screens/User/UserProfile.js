@@ -1,6 +1,6 @@
 import React, { useContext, useState, useCallback } from "react";
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, Image, Alert, Platform } from "react-native";
-import { useFocusEffect, useNavigation, DrawerActions } from "@react-navigation/native";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import axios from "axios";
 import baseURL from "../assets/common/baseurl";
 import AuthGlobal from "../../backend/Context/Store/AuthGlobal";
@@ -251,12 +251,6 @@ const UserProfile = () => {
     return (
         <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
             <View style={styles.topBar}>
-                <TouchableOpacity
-                    style={styles.menuButton}
-                    onPress={() => navigation.dispatch(DrawerActions.openDrawer())}
-                >
-                    <Ionicons name="menu" size={22} color="#103B28" />
-                </TouchableOpacity>
                 <View style={styles.topBarTitle}>
                     <Text style={styles.topBarText}>My Account</Text>
                     <Text style={styles.topBarSubtitle}>Profile details</Text>
@@ -343,14 +337,6 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.05,
         shadowRadius: 8,
         elevation: 2,
-    },
-    menuButton: {
-        width: 38,
-        height: 38,
-        borderRadius: 12,
-        backgroundColor: "#F3F4F6",
-        alignItems: "center",
-        justifyContent: "center",
     },
     topBarTitle: {
         flex: 1,

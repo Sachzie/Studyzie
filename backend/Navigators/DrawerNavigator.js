@@ -1,9 +1,7 @@
 import * as React from "react";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import {
-  createDrawerNavigator,
-
-} from "@react-navigation/drawer";
+import { createDrawerNavigator } from "@react-navigation/drawer";
+import { getFocusedRouteNameFromRoute } from "@react-navigation/native";
 
 import Main from "./Main";
 
@@ -14,7 +12,11 @@ const DrawerNavigator = () => {
   return (
 
     <NativeDrawer.Navigator
-      screenOptions={{
+      screenOptions={({ route }) => {
+        const focusedRoute = getFocusedRouteNameFromRoute(route) ?? "Home";
+        const drawerEnabled = focusedRoute === "Home";
+
+        return {
         headerShown: false,
         drawerStyle: {
           width: '50%',
@@ -26,6 +28,9 @@ const DrawerNavigator = () => {
         headerTitleStyle: {
           fontWeight: "700",
         },
+        swipeEnabled: drawerEnabled,
+        gestureEnabled: drawerEnabled,
+      };
       }}
       drawerContent={(props) => <DrawerContent {...props} />}>
       <NativeDrawer.Screen 

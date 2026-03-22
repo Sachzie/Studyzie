@@ -9,7 +9,7 @@ import {
     TextInput,
     ActivityIndicator,
 } from "react-native";
-import { useFocusEffect, DrawerActions } from "@react-navigation/native";
+import { useFocusEffect } from "@react-navigation/native";
 import { useDispatch, useSelector } from "react-redux";
 import Toast from "react-native-toast-message";
 import { Ionicons } from "@expo/vector-icons";
@@ -284,12 +284,6 @@ const Reviews = ({ navigation }) => {
         <View style={styles.container}>
             <View style={styles.header}>
                 <View style={styles.headerTopRow}>
-                    <TouchableOpacity
-                        style={styles.menuButton}
-                        onPress={() => navigation.dispatch(DrawerActions.openDrawer())}
-                    >
-                        <Ionicons name="menu" size={22} color="#0F5D3A" />
-                    </TouchableOpacity>
                     <View style={styles.headerBrand}>
                         <Text style={styles.headerBrandText}>Studyzie</Text>
                         <Text style={styles.headerBrandTag}>Ratings</Text>
@@ -348,14 +342,6 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "space-between",
         marginBottom: 12,
-    },
-    menuButton: {
-        width: 38,
-        height: 38,
-        borderRadius: 12,
-        backgroundColor: "#F3F4F6",
-        alignItems: "center",
-        justifyContent: "center",
     },
     headerBrand: {
         flex: 1,

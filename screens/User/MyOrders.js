@@ -1,14 +1,13 @@
 import React, { useContext, useState, useCallback, useMemo, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, StatusBar, TouchableOpacity } from 'react-native';
 import axios from 'axios';
-import { useFocusEffect, DrawerActions } from '@react-navigation/native';
+import { useFocusEffect } from '@react-navigation/native';
 import { useDispatch, useSelector } from 'react-redux';
 import AuthGlobal from '../../backend/Context/Store/AuthGlobal';
 import baseURL from '../assets/common/baseurl';
 import OrderCard from '../Shared/OrderCard';
 import { fetchUserOrders } from '../../backend/Redux/Actions/orderActions';
 import { getToken } from '../../backend/Context/Store/tokenStorage';
-import { Ionicons } from "@expo/vector-icons";
 import StudyzieLogo from "../../Shared/StudyzieLogo";
 
 const MyOrders = (props) => {
@@ -88,12 +87,6 @@ const MyOrders = (props) => {
             <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
             <View style={styles.header}>
                 <View style={styles.headerTopRow}>
-                    <TouchableOpacity
-                        style={styles.menuButton}
-                        onPress={() => props.navigation.dispatch(DrawerActions.openDrawer())}
-                    >
-                        <Ionicons name="menu" size={22} color="#0F5D3A" />
-                    </TouchableOpacity>
                     <View style={styles.headerBrand}>
                         <Text style={styles.headerBrandText}>Studyzie</Text>
                         <Text style={styles.headerBrandTag}>Your Orders</Text>
@@ -185,14 +178,6 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "space-between",
         marginBottom: 12,
-    },
-    menuButton: {
-        width: 38,
-        height: 38,
-        borderRadius: 12,
-        backgroundColor: "#F3F4F6",
-        alignItems: "center",
-        justifyContent: "center",
     },
     headerBrand: {
         flex: 1,
