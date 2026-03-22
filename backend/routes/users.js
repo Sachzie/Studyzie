@@ -29,6 +29,8 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
+const { sendPushNotification } = require('../utils/pushNotifications');
+
 const router = express.Router();
 
 const isCloudinaryConfigured = () =>
@@ -374,6 +376,40 @@ router.put('/:id/push-token', async (req, res) => {
     res.send({ success: true, pushToken: user.pushToken });
   } catch (error) {
     return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// POST broadcast promotional push notification to all users
+router.post('/broadcast-promotion', async (req, res) => {
+  try {
+    const { title, message, promotionData } = req.body;
+    
+    if (!title || !message) {
+      return res.status(400).json({ success: false, message: 'Title and message are required' });
+    }
+
+    const users = await User.find({ pushToken: { $exists: true, $ne: '' } }).select('pushToken');
+    const tokens = users.map(u => u.pushToken);
+
+    if (tokens.length === 0) {
+      return res.status(200).json({ success: true, message: 'No users with push tokens found', count: 0 });
+    }
+
+    await sendPushNotification(
+      tokens,
+      title,
+      message,
+      { 
+        screen: 'PromotionDetail', 
+        promotion: promotionData || {},
+        timestamp: new Date().toISOString()
+      }
+    );
+
+    res.status(200).json({ success: true, message: 'Broadcast sent successfully', count: tokens.length });
+  } catch (error) {
+    console.error('Broadcast error:', error);
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 

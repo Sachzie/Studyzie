@@ -1,0 +1,226 @@
+import React from "react";
+import {
+    View,
+    Text,
+    StyleSheet,
+    ScrollView,
+    TouchableOpacity,
+    Image,
+    Dimensions,
+    Share,
+} from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from 'expo-linear-gradient';
+
+const { width } = Dimensions.get("window");
+
+const PromotionDetail = ({ route, navigation }) => {
+    const { promotion } = route.params || {};
+
+    const handleShare = async () => {
+        try {
+            await Share.share({
+                message: `Check out this special offer at Studyzie! Use code ${promotion?.discountCode} for ${promotion?.discountAmount}% off!`,
+            });
+        } catch (error) {
+            console.log(error);
+        }
+    };
+
+    return (
+        <ScrollView style={styles.container} bounces={false}>
+            <LinearGradient
+                colors={['#103B28', '#166534']}
+                style={styles.header}
+            >
+                <Ionicons name="gift-outline" size={80} color="#FFFFFF" style={styles.headerIcon} />
+                <Text style={styles.headerTitle}>EXCLUSIVE OFFER</Text>
+            </LinearGradient>
+
+            <View style={styles.content}>
+                <View style={styles.promoCard}>
+                    <Text style={styles.promoLabel}>Special Discount</Text>
+                    <Text style={styles.promoAmount}>{promotion?.discountAmount || "20"}% OFF</Text>
+                    
+                    <View style={styles.codeContainer}>
+                        <Text style={styles.codeLabel}>USE PROMO CODE</Text>
+                        <View style={styles.codeBox}>
+                            <Text style={styles.codeText}>{promotion?.discountCode || "WELCOME20"}</Text>
+                        </View>
+                    </View>
+
+                    <Text style={styles.promoDescription}>
+                        Get amazing discounts on all your school supply needs. From notebooks to art materials, everything is now more affordable at Studyzie.
+                    </Text>
+
+                    <View style={styles.divider} />
+
+                    <View style={styles.perksRow}>
+                        <View style={styles.perk}>
+                            <Ionicons name="checkmark-circle" size={20} color="#103B28" />
+                            <Text style={styles.perkText}>All Items</Text>
+                        </View>
+                        <View style={styles.perk}>
+                            <Ionicons name="checkmark-circle" size={20} color="#103B28" />
+                            <Text style={styles.perkText}>Limited Time</Text>
+                        </View>
+                        <View style={styles.perk}>
+                            <Ionicons name="checkmark-circle" size={20} color="#103B28" />
+                            <Text style={styles.perkText}>One Use</Text>
+                        </View>
+                    </View>
+                </View>
+
+                <TouchableOpacity 
+                    style={styles.shopButton}
+                    onPress={() => navigation.navigate("Main")}
+                >
+                    <Text style={styles.shopButtonText}>Shop Now</Text>
+                    <Ionicons name="arrow-forward" size={20} color="#FFFFFF" />
+                </TouchableOpacity>
+
+                <TouchableOpacity 
+                    style={styles.shareButton}
+                    onPress={handleShare}
+                >
+                    <Ionicons name="share-social-outline" size={20} color="#103B28" />
+                    <Text style={styles.shareButtonText}>Share with friends</Text>
+                </TouchableOpacity>
+            </View>
+        </ScrollView>
+    );
+};
+
+const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+        backgroundColor: "#F9FAFB",
+    },
+    header: {
+        height: 200,
+        justifyContent: "center",
+        alignItems: "center",
+        paddingTop: 20,
+    },
+    headerIcon: {
+        marginBottom: 12,
+    },
+    headerTitle: {
+        color: "#FFFFFF",
+        fontSize: 20,
+        fontWeight: "800",
+        letterSpacing: 2,
+    },
+    content: {
+        padding: 20,
+        marginTop: -30,
+    },
+    promoCard: {
+        backgroundColor: "#FFFFFF",
+        borderRadius: 24,
+        padding: 24,
+        alignItems: "center",
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 12,
+        elevation: 5,
+    },
+    promoLabel: {
+        fontSize: 14,
+        fontWeight: "600",
+        color: "#6B7280",
+        textTransform: "uppercase",
+        letterSpacing: 1,
+    },
+    promoAmount: {
+        fontSize: 48,
+        fontWeight: "900",
+        color: "#103B28",
+        marginVertical: 10,
+    },
+    codeContainer: {
+        width: "100%",
+        alignItems: "center",
+        marginVertical: 20,
+    },
+    codeLabel: {
+        fontSize: 12,
+        fontWeight: "700",
+        color: "#9CA3AF",
+        marginBottom: 8,
+    },
+    codeBox: {
+        backgroundColor: "#F3F4F6",
+        borderWidth: 2,
+        borderColor: "#103B28",
+        borderStyle: "dashed",
+        borderRadius: 12,
+        paddingHorizontal: 40,
+        paddingVertical: 12,
+    },
+    codeText: {
+        fontSize: 24,
+        fontWeight: "800",
+        color: "#103B28",
+        letterSpacing: 2,
+    },
+    promoDescription: {
+        fontSize: 15,
+        color: "#4B5563",
+        textAlign: "center",
+        lineHeight: 22,
+        marginTop: 10,
+    },
+    divider: {
+        height: 1,
+        width: "100%",
+        backgroundColor: "#E5E7EB",
+        marginVertical: 24,
+    },
+    perksRow: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        width: "100%",
+    },
+    perk: {
+        flexDirection: "row",
+        alignItems: "center",
+    },
+    perkText: {
+        fontSize: 12,
+        fontWeight: "600",
+        color: "#374151",
+        marginLeft: 4,
+    },
+    shopButton: {
+        backgroundColor: "#103B28",
+        borderRadius: 16,
+        height: 56,
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        marginTop: 24,
+    },
+    shopButtonText: {
+        color: "#FFFFFF",
+        fontSize: 16,
+        fontWeight: "700",
+        marginRight: 8,
+    },
+    shareButton: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        marginTop: 20,
+        paddingVertical: 12,
+    },
+    shareButtonText: {
+        color: "#103B28",
+        fontSize: 15,
+        fontWeight: "600",
+        marginLeft: 8,
+    },
+});
+
+export default PromotionDetail;

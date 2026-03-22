@@ -9,6 +9,7 @@ import {
     Image,
     Dimensions,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
 import { useDispatch, useSelector } from "react-redux";
 import { LineChart } from "react-native-chart-kit";
@@ -262,6 +263,18 @@ const Dashboard = ({ navigation }) => {
                         </View>
                     </View>
 
+                    <TouchableOpacity 
+                        style={styles.promoButton}
+                        onPress={() => navigation.navigate("SendPromotion")}
+                    >
+                        <Ionicons name="megaphone" size={24} color="#FFFFFF" />
+                        <View style={styles.promoTextContainer}>
+                            <Text style={styles.promoButtonTitle}>Send Promotion</Text>
+                            <Text style={styles.promoButtonSubtitle}>Broadcast discounts to all users</Text>
+                        </View>
+                        <Ionicons name="chevron-forward" size={20} color="#FFFFFF" />
+                    </TouchableOpacity>
+
                     <View style={styles.chartHeader}>
                         <Text style={styles.sectionTitle}>Revenue</Text>
                         <View style={styles.segment}>
@@ -353,6 +366,33 @@ const styles = StyleSheet.create({
     cardWrap: {
         width: "48%",
         marginBottom: 12,
+    },
+    promoButton: {
+        backgroundColor: "#103B28",
+        borderRadius: 18,
+        padding: 16,
+        flexDirection: "row",
+        alignItems: "center",
+        marginBottom: 20,
+        shadowColor: "#103B28",
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.2,
+        shadowRadius: 8,
+        elevation: 4,
+    },
+    promoTextContainer: {
+        flex: 1,
+        marginLeft: 12,
+    },
+    promoButtonTitle: {
+        color: "#FFFFFF",
+        fontSize: 16,
+        fontWeight: "700",
+    },
+    promoButtonSubtitle: {
+        color: "rgba(255,255,255,0.7)",
+        fontSize: 12,
+        marginTop: 2,
     },
     statCard: {
         borderRadius: 18,

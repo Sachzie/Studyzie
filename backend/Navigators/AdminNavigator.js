@@ -8,6 +8,7 @@ import Users from "../../screens/Admin/Users";
 import UserForm from "../../screens/Admin/UserForm";
 import AdminTabs from "./AdminTabs";
 import AdminProfile from "../../screens/Admin/AdminProfile";
+import SendPromotion from "../../screens/Admin/SendPromotion";
 
 const Stack = createStackNavigator();
 
@@ -73,6 +74,14 @@ const AdminNavigator = () => {
                 component={AdminProfile}
                 options={{
                     headerShown: false,
+                }}
+            />
+            <Stack.Screen
+                name="SendPromotion"
+                component={SendPromotion}
+                options={{
+                    title: "Send Promotion",
+                    headerShown: true
                 }}
             />
         </Stack.Navigator>

@@ -3,6 +3,7 @@ import { createStackNavigator } from "@react-navigation/stack"
 // import { Stack } from 'expo-router';
 import ProductContainer from '../../screens/Product/ProductContainer';
 import SingleProduct from '../../screens/Product/SingleProduct';
+import PromotionDetail from '../../screens/User/PromotionDetail';
 
 const Stack = createStackNavigator()
 function MyStack() {
@@ -33,7 +34,14 @@ function MyStack() {
                     title: "Product Details",
                 }}
             />
-
+            <Stack.Screen
+                name='PromotionDetail'
+                component={PromotionDetail}
+                options={{
+                    headerShown: true,
+                    title: "Special Promotion",
+                }}
+            />
         </Stack.Navigator>
     )
 }

@@ -47,6 +47,8 @@ const NotificationHandler = () => {
         navigation.navigate('My Orders', { orderId: data?.orderId });
       } else if (data?.screen === 'Orders') {
         navigation.navigate('AdminTabs', { screen: 'Orders' });
+      } else if (data?.screen === 'PromotionDetail') {
+        navigation.navigate('PromotionDetail', { promotion: data?.promotion });
       }
     });
 
