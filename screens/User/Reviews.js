@@ -16,6 +16,7 @@ import { Ionicons } from "@expo/vector-icons";
 
 import AuthGlobal from "../../backend/Context/Store/AuthGlobal";
 import baseURL from "../assets/common/baseurl";
+import colors from "../assets/common/colors";
 import { fetchReviewables, submitReview as submitReviewAction } from "../../backend/Redux/Actions/reviewActions";
 import { getToken } from "../../backend/Context/Store/tokenStorage";
 import a4Img from "../Picures/a4.jpg";
@@ -198,7 +199,7 @@ const Reviews = ({ navigation }) => {
                     <Ionicons
                         name={value >= star ? "star" : "star-outline"}
                         size={20}
-                        color={value >= star ? "#F59E0B" : "#D1D5DB"}
+                        color={value >= star ? "#F59E0B" : colors.light}
                     />
                 </TouchableOpacity>
             ))}
@@ -240,7 +241,7 @@ const Reviews = ({ navigation }) => {
                         style={[styles.reviewButton, review ? styles.reviewButtonAlt : null]}
                         onPress={() => setExpandedId(isExpanded ? "" : productId)}
                     >
-                        <Ionicons name="create-outline" size={16} color={review ? "#0F5D3A" : "#FFFFFF"} />
+                        <Ionicons name="create-outline" size={16} color={review ? colors.primary : colors.white} />
                         <Text style={[styles.reviewButtonText, review ? styles.reviewButtonTextAlt : null]}>
                             {review ? "Update Review" : "Write Review"}
                         </Text>
@@ -255,7 +256,7 @@ const Reviews = ({ navigation }) => {
                         <TextInput
                             style={styles.reviewInput}
                             placeholder="Share what you liked about this product..."
-                            placeholderTextColor="#9CA3AF"
+                            placeholderTextColor={colors.placeholder}
                             value={draft.comment}
                             onChangeText={(text) => updateDraft(productId, { comment: text })}
                             multiline
@@ -266,7 +267,7 @@ const Reviews = ({ navigation }) => {
                             disabled={savingId === productId}
                         >
                             {savingId === productId ? (
-                                <ActivityIndicator size="small" color="#FFFFFF" />
+                                <ActivityIndicator size="small" color={colors.white} />
                             ) : (
                                 <Text style={styles.submitText}>
                                     {review ? "Save Changes" : "Submit Review"}
@@ -288,7 +289,7 @@ const Reviews = ({ navigation }) => {
 
             {loading ? (
                 <View style={styles.center}>
-                    <ActivityIndicator size="large" color="#0F5D3A" />
+                    <ActivityIndicator size="large" color={colors.primary} />
                     <Text style={styles.loadingText}>Loading your purchases...</Text>
                 </View>
             ) : (
@@ -299,7 +300,7 @@ const Reviews = ({ navigation }) => {
                     contentContainerStyle={styles.listContent}
                     ListEmptyComponent={
                         <View style={styles.center}>
-                            <Ionicons name="star-outline" size={40} color="#CBD5E1" />
+                            <Ionicons name="star-outline" size={40} color={colors.light} />
                             <Text style={styles.emptyText}>No delivered orders yet.</Text>
                         </View>
                     }
@@ -312,16 +313,16 @@ const Reviews = ({ navigation }) => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: "#F4F7F5",
+        backgroundColor: colors.inputBg,
     },
     header: {
         paddingHorizontal: 20,
-        paddingTop: 24,
+        paddingTop: 60, // Increased to avoid status bar overlap
         paddingBottom: 14,
-        backgroundColor: "#FFFFFF",
+        backgroundColor: colors.white,
         borderBottomLeftRadius: 24,
         borderBottomRightRadius: 24,
-        shadowColor: "#000",
+        shadowColor: colors.black,
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.05,
         shadowRadius: 10,
@@ -330,12 +331,12 @@ const styles = StyleSheet.create({
     headerTitle: {
         fontSize: 26,
         fontWeight: "800",
-        color: "#0F5D3A",
+        color: colors.primary,
     },
     headerSubtitle: {
         marginTop: 4,
         fontSize: 13,
-        color: "#6B7280",
+        color: colors.textLight,
     },
     listContent: {
         paddingHorizontal: 16,
@@ -343,13 +344,13 @@ const styles = StyleSheet.create({
         paddingTop: 14,
     },
     card: {
-        backgroundColor: "#FFFFFF",
+        backgroundColor: colors.white,
         borderRadius: 18,
         padding: 14,
         marginBottom: 14,
         borderWidth: 1,
-        borderColor: "#E5E7EB",
-        shadowColor: "#0F172A",
+        borderColor: colors.light,
+        shadowColor: colors.black,
         shadowOffset: { width: 0, height: 6 },
         shadowOpacity: 0.05,
         shadowRadius: 10,
@@ -363,7 +364,7 @@ const styles = StyleSheet.create({
         width: 68,
         height: 68,
         borderRadius: 14,
-        backgroundColor: "#F3F4F6",
+        backgroundColor: colors.gray,
         marginRight: 12,
     },
     meta: {
@@ -372,12 +373,12 @@ const styles = StyleSheet.create({
     productName: {
         fontSize: 16,
         fontWeight: "700",
-        color: "#111827",
+        color: colors.text,
     },
     productSubtitle: {
         marginTop: 2,
         fontSize: 12,
-        color: "#6B7280",
+        color: colors.textLight,
     },
     priceRow: {
         marginTop: 6,
@@ -388,11 +389,11 @@ const styles = StyleSheet.create({
     priceText: {
         fontSize: 14,
         fontWeight: "700",
-        color: "#0F5D3A",
+        color: colors.primary,
     },
     ratingMeta: {
         fontSize: 11,
-        color: "#9CA3AF",
+        color: colors.textLight,
         fontWeight: "600",
     },
     cardActions: {
@@ -406,32 +407,32 @@ const styles = StyleSheet.create({
         paddingHorizontal: 12,
         paddingVertical: 8,
         borderRadius: 999,
-        backgroundColor: "#0F5D3A",
+        backgroundColor: colors.primary,
     },
     reviewButtonAlt: {
-        backgroundColor: "#E8F3EE",
+        backgroundColor: colors.lighter,
         borderWidth: 1,
-        borderColor: "#CBE4D8",
+        borderColor: colors.light,
     },
     reviewButtonText: {
         marginLeft: 6,
         fontSize: 12,
         fontWeight: "700",
-        color: "#FFFFFF",
+        color: colors.white,
     },
     reviewButtonTextAlt: {
-        color: "#0F5D3A",
+        color: colors.primary,
     },
     reviewPanel: {
         marginTop: 12,
         borderTopWidth: 1,
-        borderTopColor: "#F3F4F6",
+        borderTopColor: colors.light,
         paddingTop: 12,
     },
     reviewLabel: {
         fontSize: 12,
         fontWeight: "700",
-        color: "#374151",
+        color: colors.text,
         marginBottom: 6,
     },
     starRow: {
@@ -444,12 +445,12 @@ const styles = StyleSheet.create({
     reviewInput: {
         minHeight: 80,
         borderWidth: 1,
-        borderColor: "#E5E7EB",
+        borderColor: colors.light,
         borderRadius: 12,
         padding: 10,
         fontSize: 12,
-        color: "#111827",
-        backgroundColor: "#FFFFFF",
+        color: colors.text,
+        backgroundColor: colors.white,
         textAlignVertical: "top",
         marginBottom: 12,
     },
@@ -457,13 +458,13 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "center",
         borderRadius: 12,
-        backgroundColor: "#111827",
+        backgroundColor: colors.primary,
         paddingVertical: 10,
     },
     submitText: {
         fontSize: 13,
         fontWeight: "700",
-        color: "#FFFFFF",
+        color: colors.white,
     },
     center: {
         alignItems: "center",
@@ -473,12 +474,12 @@ const styles = StyleSheet.create({
     emptyText: {
         marginTop: 10,
         fontSize: 14,
-        color: "#9CA3AF",
+        color: colors.textLight,
     },
     loadingText: {
         marginTop: 10,
         fontSize: 13,
-        color: "#6B7280",
+        color: colors.textLight,
     },
 });
 

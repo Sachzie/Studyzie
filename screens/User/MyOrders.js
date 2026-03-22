@@ -8,6 +8,7 @@ import baseURL from '../assets/common/baseurl';
 import OrderCard from '../Shared/OrderCard';
 import { fetchUserOrders } from '../../backend/Redux/Actions/orderActions';
 import { getToken } from '../../backend/Context/Store/tokenStorage';
+import colors from '../assets/common/colors';
 
 const MyOrders = (props) => {
     const context = useContext(AuthGlobal);
@@ -83,7 +84,7 @@ const MyOrders = (props) => {
 
     return (
         <View style={styles.container}>
-            <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+            <StatusBar barStyle="dark-content" backgroundColor={colors.white} />
             <View style={styles.header}>
                 <View>
                     <Text style={styles.headerTitle}>Orders</Text>
@@ -145,16 +146,16 @@ const MyOrders = (props) => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: "#F4F7F5",
+        backgroundColor: colors.inputBg,
     },
     header: {
-        backgroundColor: "#FFFFFF",
+        backgroundColor: colors.white,
         paddingHorizontal: 20,
-        paddingTop: 24,
+        paddingTop: 60,
         paddingBottom: 20,
         borderBottomLeftRadius: 24,
         borderBottomRightRadius: 24,
-        shadowColor: "#000",
+        shadowColor: colors.black,
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.05,
         shadowRadius: 10,
@@ -166,11 +167,11 @@ const styles = StyleSheet.create({
     headerTitle: {
         fontSize: 26,
         fontWeight: "800",
-        color: "#0F5D3A",
+        color: colors.primary,
     },
     headerSubtitle: {
         fontSize: 14,
-        color: "#6B7280",
+        color: colors.textLight,
         marginTop: 4,
     },
     filterRow: {
@@ -185,20 +186,20 @@ const styles = StyleSheet.create({
         paddingVertical: 6,
         borderRadius: 999,
         borderWidth: 1,
-        borderColor: "#D1D5DB",
-        backgroundColor: "#FFFFFF",
+        borderColor: colors.light,
+        backgroundColor: colors.white,
     },
     filterChipActive: {
-        backgroundColor: "#0F5D3A",
-        borderColor: "#0F5D3A",
+        backgroundColor: colors.primary,
+        borderColor: colors.primary,
     },
     filterChipText: {
         fontSize: 12,
         fontWeight: "700",
-        color: "#374151",
+        color: colors.text,
     },
     filterChipTextActive: {
-        color: "#FFFFFF",
+        color: colors.white,
     },
     listContent: {
         paddingHorizontal: 16,
@@ -212,7 +213,7 @@ const styles = StyleSheet.create({
     },
     emptyText: {
         fontSize: 16,
-        color: "#9CA3AF",
+        color: colors.textLight,
     }
 });
 

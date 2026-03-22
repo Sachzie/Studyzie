@@ -1,23 +1,46 @@
 import React from 'react'
-import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs'
+import { createStackNavigator, TransitionPresets } from '@react-navigation/stack'
+import colors from '../../screens/assets/common/colors';
 
 // Screens
 import Checkout from '../../screens/Checkout/Checkout';
 import Payment from '../../screens/Checkout/Payment';
 import Confirm from '../../screens/Checkout/Confirm';
 
-const Tab = createMaterialTopTabNavigator();
-
-function MyTabs() {
-    return (
-        <Tab.Navigator>
-            <Tab.Screen name="Shipping" component={Checkout} />
-            <Tab.Screen name="Payment" component={Payment} />
-            <Tab.Screen name="Confirm" component={Confirm} />
-        </Tab.Navigator>
-    );
-}
+const Stack = createStackNavigator();
 
 export default function CheckoutNavigator() {
-    return <MyTabs />
+    return (
+        <Stack.Navigator
+            screenOptions={{
+                headerStyle: {
+                    backgroundColor: colors.white,
+                    elevation: 0,
+                    shadowOpacity: 0,
+                },
+                headerTintColor: colors.primary,
+                headerTitleStyle: {
+                    fontWeight: 'bold',
+                },
+                cardStyle: { backgroundColor: colors.inputBg },
+                ...TransitionPresets.SlideFromRightIOS
+            }}
+        >
+            <Stack.Screen 
+                name="Shipping" 
+                component={Checkout} 
+                options={{ title: '1. Shipping Address' }}
+            />
+            <Stack.Screen 
+                name="Payment" 
+                component={Payment} 
+                options={{ title: '2. Payment Method' }}
+            />
+            <Stack.Screen 
+                name="Confirm" 
+                component={Confirm} 
+                options={{ title: '3. Review Order' }}
+            />
+        </Stack.Navigator>
+    );
 }

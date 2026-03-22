@@ -264,6 +264,10 @@ const ProductContainer = () => {
         }
 
         let filtered = sourceProducts;
+        
+        // Filter out out-of-stock products
+        filtered = filtered.filter((item) => item.countInStock > 0);
+        
         if (categoryId !== "all") {
             filtered = filtered.filter((item) => getCategoryId(item) === categoryId);
         }
@@ -410,12 +414,6 @@ const ProductContainer = () => {
             />
             <View style={styles.header}>
                 <View style={styles.headerTopRow}>
-                    <TouchableOpacity
-                        onPress={() => navigation.dispatch(DrawerActions.openDrawer())}
-                        style={styles.menuButton}
-                    >
-                        <Ionicons name="menu" size={24} color={colors.primary} />
-                    </TouchableOpacity>
                     <View style={styles.brandWrap}>
                         <Text style={styles.brandText}>Studyzie</Text>
                         <Text style={styles.brandTag}>School Supplies</Text>
@@ -427,7 +425,7 @@ const ProductContainer = () => {
                                 onPress={() => setPromoVisible(true)}
                                 accessibilityLabel="View promotions"
                             >
-                                <Ionicons name="notifications" size={20} color={colors.primary} />
+                                <Ionicons name="notifications" size={20} color={colors.white} />
                                 <View style={styles.notifDot} />
                             </TouchableOpacity>
                         ) : null}
@@ -436,19 +434,16 @@ const ProductContainer = () => {
                         </View>
                     </View>
                 </View>
-                <View style={styles.headerTextWrap}>
-                    <Text style={styles.headerTitle}>Studyzie Store</Text>
-                    <Text style={styles.headerSubtitle}>Search and filter by category or price</Text>
-                </View>
+                
                 <Searchbar
-                    placeholder="Search by name, brand, or description"
+                    placeholder="Search products..."
                     onChangeText={searchProduct}
                     value={keyword}
                     onClearIconPress={onClearSearch}
                     style={styles.searchbar}
                     inputStyle={styles.searchInput}
-                    iconColor={colors.primary}
-                    placeholderTextColor={colors.placeholder}
+                    iconColor={colors.white}
+                    placeholderTextColor="rgba(255,255,255,0.6)"
                 />
             </View>
 
@@ -564,16 +559,18 @@ const styles = StyleSheet.create({
         backgroundColor: colors.inputBg, // Cleaner off-white background
     },
     header: {
-        backgroundColor: colors.white,
-        paddingHorizontal: 16,
-        paddingTop: 46, // Safe area top
-        paddingBottom: 18,
-        borderBottomLeftRadius: 24,
-        borderBottomRightRadius: 24,
-        shadowColor: colors.black,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.05,
-        shadowRadius: 10,
+        backgroundColor: 'rgba(141, 123, 104, 0.85)', // Brown glass effect
+        paddingHorizontal: 20,
+        paddingTop: 56, // Safe area top
+        paddingBottom: 24,
+        borderBottomLeftRadius: 30,
+        borderBottomRightRadius: 30,
+        borderBottomWidth: 1,
+        borderBottomColor: 'rgba(255, 255, 255, 0.2)',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.3,
+        shadowRadius: 20,
         elevation: 5,
         marginBottom: 16,
         zIndex: 10,
@@ -582,55 +579,44 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
-        marginBottom: 12,
-    },
-    menuButton: {
-        width: 40,
-        height: 40,
-        borderRadius: 12,
-        backgroundColor: colors.inputBg,
-        justifyContent: "center",
-        alignItems: "center",
-        borderWidth: 1,
-        borderColor: colors.light,
+        marginBottom: 16,
     },
     brandWrap: {
         flex: 1,
-        marginHorizontal: 12,
     },
     brandText: {
-        fontSize: 16,
+        fontSize: 22,
         fontWeight: "800",
-        color: colors.text,
+        color: colors.white,
     },
     brandTag: {
-        fontSize: 11,
-        color: colors.textLight,
+        fontSize: 12,
+        color: 'rgba(255, 255, 255, 0.8)',
         marginTop: 2,
         fontWeight: "600",
     },
     headerLogo: {
-        width: 40,
-        height: 40,
+        width: 44,
+        height: 44,
         borderRadius: 12,
-        backgroundColor: "#FFFFFF",
+        backgroundColor: 'rgba(255, 255, 255, 0.2)',
         alignItems: "center",
         justifyContent: "center",
         borderWidth: 1,
-        borderColor: colors.light,
+        borderColor: 'rgba(255, 255, 255, 0.3)',
+        marginLeft: 12,
     },
     headerActions: {
         flexDirection: "row",
         alignItems: "center",
-        gap: 10,
     },
     notifButton: {
-        width: 38,
-        height: 38,
+        width: 44,
+        height: 44,
         borderRadius: 12,
-        backgroundColor: colors.inputBg,
+        backgroundColor: 'rgba(255, 255, 255, 0.2)',
         borderWidth: 1,
-        borderColor: colors.light,
+        borderColor: 'rgba(255, 255, 255, 0.3)',
         alignItems: "center",
         justifyContent: "center",
     },
@@ -666,17 +652,17 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
     },
     searchbar: {
-        borderRadius: 12,
-        backgroundColor: colors.white,
+        borderRadius: 16,
+        backgroundColor: 'rgba(255, 255, 255, 0.2)',
         elevation: 0,
-        height: 48,
+        height: 50,
         borderWidth: 1,
-        borderColor: colors.light
+        borderColor: 'rgba(255, 255, 255, 0.3)'
     },
     searchInput: {
-        fontSize: 14,
-        color: colors.text,
-        alignSelf: 'center', // Fix text alignment in react-native-paper Searchbar
+        fontSize: 15,
+        color: colors.white,
+        alignSelf: 'center', 
     },
     categorySection: {
         marginBottom: 12,

@@ -1,5 +1,5 @@
 import React from 'react'
-import { createStackNavigator } from "@react-navigation/stack"
+import { createStackNavigator, TransitionPresets } from "@react-navigation/stack"
 
 import Cart from '../../screens/Cart/Cart'
 import CheckoutNavigator from './CheckoutNavigator';
@@ -8,7 +8,11 @@ const Stack = createStackNavigator();
 
 function MyStack() {
     return (
-        <Stack.Navigator>
+        <Stack.Navigator
+            screenOptions={{
+                ...TransitionPresets.SlideFromRightIOS,
+            }}
+        >
             <Stack.Screen
                 name="Cart"
                 component={Cart}
@@ -20,7 +24,7 @@ function MyStack() {
                 name="Checkout"
                 component={CheckoutNavigator}
                 options={{
-                    title: 'Checkout'
+                    headerShown: false
                 }}
             />
         </Stack.Navigator>

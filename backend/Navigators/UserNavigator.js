@@ -1,5 +1,5 @@
 import React, { useContext } from "react";
-import { createStackNavigator } from '@react-navigation/stack'
+import { createStackNavigator, TransitionPresets } from '@react-navigation/stack'
 
 import AuthScreen from "../../screens/AuthUI/AuthScreen";
 import UserProfile from "../../screens/User/UserProfile";
@@ -22,6 +22,7 @@ const UserNavigator = (props) => {
                 headerTitleStyle: {
                     fontWeight: "700",
                 },
+                ...TransitionPresets.SlideFromRightIOS,
             }}
         >
             <Stack.Screen

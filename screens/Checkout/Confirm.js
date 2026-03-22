@@ -6,10 +6,11 @@ import { useDispatch } from 'react-redux'
 import axios from 'axios';
 import baseURL from '../assets/common/baseurl';
 import Toast from 'react-native-toast-message';
-import { clearCart } from '../../backend/Redux/Actions/cartActions';
+import { clearCart, removeFromCart } from '../../backend/Redux/Actions/cartActions';
 import { fetchProducts } from '../../backend/Redux/Actions/productActions';
 import { clearCartStorage } from '../../backend/Context/Store/CartStorage';
 import { getToken } from '../../backend/Context/Store/tokenStorage';
+import colors from '../assets/common/colors';
 
 var { width, height } = Dimensions.get("window");
 const API_ORIGIN = baseURL.replace(/api\/v1\/?$/, "");
@@ -157,9 +158,8 @@ const Confirm = (props) => {
                 text2: "Thank you for shopping with Studyzie!",
             });
             setTimeout(() => {
-                dispatch(clearCart())
-                dispatch(fetchProducts())
-                clearCartStorage().catch(() => {});
+                orderItems.forEach(item => dispatch(removeFromCart(item)));
+                dispatch(fetchProducts());
                 navigation.navigate('Cart Screen', { screen: 'Cart' })
             }, 500);
         } catch (error) {
@@ -256,8 +256,8 @@ const Confirm = (props) => {
                 <View style={styles.buttonContainer}>
                     <Button
                         mode="contained"
-                        buttonColor="#103B28"
-                        textColor="#FFFFFF"
+                        buttonColor={colors.primary}
+                        textColor={colors.white}
                         onPress={confirmOrder}
                         style={styles.confirmButton}
                         contentStyle={{ height: 50 }}
@@ -273,7 +273,7 @@ const Confirm = (props) => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: "#F9FAFB",
+        backgroundColor: colors.inputBg,
     },
     scrollContent: {
         padding: 16,
@@ -282,7 +282,7 @@ const styles = StyleSheet.create({
     headerTitle: {
         fontSize: 24,
         fontWeight: "bold",
-        color: "#103B28",
+        color: colors.primary,
         marginBottom: 20,
         textAlign: "center"
     },
@@ -292,18 +292,18 @@ const styles = StyleSheet.create({
     sectionSurface: {
         padding: 16,
         borderRadius: 12,
-        backgroundColor: "white",
+        backgroundColor: colors.white,
         marginBottom: 16,
         elevation: 2
     },
     sectionTitle: {
         fontSize: 18,
         fontWeight: "700",
-        color: "#374151",
+        color: colors.text,
         marginBottom: 8
     },
     divider: {
-        backgroundColor: "#E5E7EB",
+        backgroundColor: colors.light,
         marginBottom: 12
     },
     detailsRow: {
@@ -313,12 +313,12 @@ const styles = StyleSheet.create({
     },
     label: {
         fontWeight: "600",
-        color: "#6B7280",
+        color: colors.textLight,
         width: 100
     },
     value: {
         flex: 1,
-        color: "#111827",
+        color: colors.text,
         textAlign: "right"
     },
     itemRow: {
@@ -326,7 +326,7 @@ const styles = StyleSheet.create({
         alignItems: "center",
         marginBottom: 12,
         borderBottomWidth: 1,
-        borderBottomColor: "#F3F4F6",
+        borderBottomColor: colors.light,
         paddingBottom: 12
     },
     itemInfo: {
@@ -336,24 +336,24 @@ const styles = StyleSheet.create({
     itemName: {
         fontSize: 16,
         fontWeight: "500",
-        color: "#111827"
+        color: colors.text
     },
     itemPrice: {
         fontSize: 14,
-        color: "#10B981",
+        color: colors.primary,
         fontWeight: "700",
         marginTop: 4
     },
     itemQty: {
         marginTop: 2,
         fontSize: 12,
-        color: "#6B7280",
+        color: colors.textLight,
         fontWeight: "600",
     },
     itemLineTotal: {
         marginTop: 2,
         fontSize: 12,
-        color: "#111827",
+        color: colors.text,
         fontWeight: "700",
     },
     summaryRow: {
@@ -364,27 +364,27 @@ const styles = StyleSheet.create({
     },
     summaryLabel: {
         fontSize: 13,
-        color: "#6B7280",
+        color: colors.textLight,
         fontWeight: "600",
     },
     summaryValue: {
         fontSize: 13,
-        color: "#111827",
+        color: colors.text,
         fontWeight: "700",
     },
     summaryTotalLabel: {
         fontSize: 15,
-        color: "#111827",
+        color: colors.text,
         fontWeight: "800",
     },
     summaryTotalValue: {
         fontSize: 16,
-        color: "#103B28",
+        color: colors.primary,
         fontWeight: "800",
     },
     promoNote: {
         fontSize: 12,
-        color: "#16A34A",
+        color: colors.success,
         fontWeight: "600",
         marginTop: 4,
         marginBottom: 6,

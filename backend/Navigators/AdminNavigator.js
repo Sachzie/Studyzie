@@ -1,5 +1,5 @@
 import React from "react"
-import { createStackNavigator } from "@react-navigation/stack"
+import { createStackNavigator, TransitionPresets } from "@react-navigation/stack"
 
 import Products from "../../screens/Admin/Products";
 import ProductForm from "../../screens/Admin/ProductForm";
@@ -25,6 +25,7 @@ const AdminNavigator = () => {
                 headerTitleStyle: {
                     fontWeight: "700",
                 },
+                ...TransitionPresets.SlideFromRightIOS,
             }}
         >
             <Stack.Screen

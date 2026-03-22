@@ -3,6 +3,7 @@ import { View, StyleSheet, TouchableOpacity, Dimensions } from 'react-native'
 import { Surface, RadioButton, Text, Button } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
 import { Picker } from '@react-native-picker/picker';
+import colors from '../assets/common/colors';
 
 const methods = [
     { name: 'Cash on Delivery', value: 1 },
@@ -37,7 +38,7 @@ const Payment = ({ route }) => {
                             <RadioButton.Item
                                 label={item.name}
                                 value={item.value}
-                                color='#103B28'
+                                color={colors.primary}
                                 labelStyle={styles.radioLabel}
                             />
                         </View>
@@ -62,8 +63,8 @@ const Payment = ({ route }) => {
             <View style={styles.buttonContainer}>
                 <Button
                     mode="contained"
-                    buttonColor="#103B28"
-                    textColor="#FFFFFF"
+                    buttonColor={colors.primary}
+                    textColor={colors.white}
                     onPress={() => navigation.navigate("Confirm", { order })}
                     style={styles.confirmButton}
                 >
@@ -77,13 +78,13 @@ const Payment = ({ route }) => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#F9FAFB',
+        backgroundColor: colors.inputBg,
         padding: 20
     },
     title: {
         fontSize: 24,
         fontWeight: 'bold',
-        color: '#103B28',
+        color: colors.primary,
         marginBottom: 20,
         textAlign: 'center'
     },
@@ -91,22 +92,22 @@ const styles = StyleSheet.create({
         padding: 10,
         borderRadius: 10,
         elevation: 2,
-        backgroundColor: 'white',
+        backgroundColor: colors.white,
         marginBottom: 20
     },
     radioItem: {
         borderBottomWidth: 1,
-        borderBottomColor: '#F3F4F6'
+        borderBottomColor: colors.light
     },
     radioLabel: {
         fontSize: 16,
-        color: '#374151'
+        color: colors.text
     },
     pickerSurface: {
         borderRadius: 8,
         borderWidth: 1,
-        borderColor: '#E5E7EB',
-        backgroundColor: 'white',
+        borderColor: colors.light,
+        backgroundColor: colors.white,
         marginBottom: 20,
         elevation: 1
     },

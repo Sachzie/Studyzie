@@ -1,16 +1,22 @@
 import React from "react";
-import { View, Dimensions, StyleSheet } from "react-native";
+import { View, Dimensions, StyleSheet, TouchableOpacity } from "react-native";
+import { useNavigation } from "@react-navigation/native";
 import ProductCard from "./ProductCard";
 var { width } = Dimensions.get("window")
 
 const ProductList = (props) => {
     const { item } = props;
+    const navigation = useNavigation();
+    
     return (
-        <View style={styles.column}>
+        <TouchableOpacity 
+            style={styles.column}
+            onPress={() => navigation.navigate("Product Detail", { item: item })}
+        >
             <View style={styles.cardWrap}>
                 <ProductCard {...item} />
             </View>
-        </View>
+        </TouchableOpacity>
     )
 }
 

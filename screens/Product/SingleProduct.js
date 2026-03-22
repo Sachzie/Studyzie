@@ -8,6 +8,7 @@ import { Ionicons } from "@expo/vector-icons";
 import AuthGlobal from "../../backend/Context/Store/AuthGlobal";
 import { useNavigation } from "@react-navigation/native";
 import baseURL from "../assets/common/baseurl";
+import colors from "../assets/common/colors";
 
 const { width } = Dimensions.get("window");
 const API_ORIGIN = baseURL.replace(/api\/v1\/?$/, "");
@@ -76,6 +77,44 @@ const SingleProduct = ({ route }) => {
         });
     };
 
+    const handleBuyNow = () => {
+        if (!isAuthenticated) {
+            Toast.show({
+                topOffset: 60,
+                type: "info",
+                text1: "Login required",
+                text2: "Please login to buy items."
+            });
+            navigation.navigate("User", { screen: "Login" });
+            return;
+        }
+
+        if (item.countInStock < 1) {
+            Toast.show({
+                topOffset: 60,
+                type: "error",
+                text1: "Out of Stock",
+                text2: "This item is currently unavailable."
+            });
+            return;
+        }
+
+        // Create a single item cart structure for checkout
+        const buyNowItem = { ...item, quantity: 1 };
+        
+        // Add to actual cart as well just in case they go back
+        dispatch(addToCart(buyNowItem));
+        
+        // Navigate straight to checkout passing this item as the selected item
+        navigation.navigate("Cart Screen", { 
+            screen: "Checkout", 
+            params: { 
+                screen: "Shipping",
+                params: { selectedItems: [buyNowItem] } 
+            } 
+        });
+    };
+
     return (
         <View style={styles.container}>
             <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
@@ -119,16 +158,28 @@ const SingleProduct = ({ route }) => {
             </ScrollView>
 
             <View style={styles.bottomBar}>
-                <TouchableOpacity
-                    style={[styles.addToCartButton, item.countInStock < 1 && styles.disabledButton]}
-                    onPress={handleAddToCart}
-                    disabled={item.countInStock < 1}
-                >
-                    <Ionicons name="cart" size={20} color="#FFFFFF" style={{ marginRight: 8 }} />
-                    <Text style={styles.addToCartText}>
-                        {item.countInStock > 0 ? "Add to Cart" : "Out of Stock"}
-                    </Text>
-                </TouchableOpacity>
+                <View style={styles.buttonRow}>
+                    <TouchableOpacity
+                        style={[styles.addToCartIconBtn, item.countInStock < 1 && styles.disabledButton]}
+                        onPress={handleAddToCart}
+                        disabled={item.countInStock < 1}
+                    >
+                        <Ionicons name="cart-outline" size={24} color={colors.primary} />
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                        style={[styles.buyNowButton, item.countInStock < 1 && styles.disabledButton]}
+                        onPress={handleBuyNow}
+                        disabled={item.countInStock < 1}
+                    >
+                        <Text style={styles.buyNowText}>
+                            {item.countInStock > 0 ? "Buy now" : "Out of Stock"}
+                        </Text>
+                        {item.countInStock > 0 && (
+                            <Text style={styles.buyNowPrice}>{formatPeso(item.price)}</Text>
+                        )}
+                    </TouchableOpacity>
+                </View>
             </View>
         </View>
     );
@@ -248,39 +299,64 @@ const styles = StyleSheet.create({
         bottom: 0,
         left: 0,
         right: 0,
-        backgroundColor: "#FFFFFF",
+        backgroundColor: colors.white,
         padding: 16,
         paddingBottom: 24,
         borderTopWidth: 1,
-        borderTopColor: "#F3F4F6",
-        shadowColor: "#000",
+        borderTopColor: colors.light,
+        shadowColor: colors.black,
         shadowOffset: { width: 0, height: -2 },
         shadowOpacity: 0.05,
         shadowRadius: 4,
         elevation: 10,
     },
-    addToCartButton: {
-        backgroundColor: "#103B28",
-        borderRadius: 12,
-        height: 56,
+    buttonRow: {
         flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        gap: 8,
+    },
+    iconButton: {
         alignItems: 'center',
         justifyContent: 'center',
-        shadowColor: "#103B28",
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-        elevation: 4,
+        paddingHorizontal: 8,
+    },
+    iconButtonText: {
+        fontSize: 10,
+        color: colors.text,
+        marginTop: 2,
+    },
+    addToCartIconBtn: {
+        backgroundColor: colors.inputBg,
+        borderRadius: 24,
+        width: 48,
+        height: 48,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginLeft: 4,
+    },
+    buyNowButton: {
+        flex: 1,
+        backgroundColor: colors.primary,
+        borderRadius: 24,
+        height: 48,
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginLeft: 8,
     },
     disabledButton: {
-        backgroundColor: "#D1D5DB",
-        shadowOpacity: 0,
-        elevation: 0,
+        opacity: 0.5,
     },
-    addToCartText: {
-        color: "#FFFFFF",
-        fontSize: 16,
+    buyNowText: {
+        color: colors.white,
+        fontSize: 15,
         fontWeight: "700",
+    },
+    buyNowPrice: {
+        color: colors.white,
+        fontSize: 11,
+        fontWeight: "500",
     },
 });
 

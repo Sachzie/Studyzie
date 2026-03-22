@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useMemo } from "react";
+import React, { useContext, useEffect, useMemo, useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { View, StyleSheet, Dimensions, TouchableOpacity, Text, Image } from "react-native";
 import { useNavigation } from "@react-navigation/native";
@@ -92,6 +92,7 @@ const Cart = () => {
     const cartItems = useSelector((state) => state.cartItems);
     const context = useContext(AuthGlobal);
     const isAuthenticated = Boolean(context?.stateUser?.isAuthenticated);
+    const [selectedItems, setSelectedItems] = useState(new Set());
 
     useEffect(() => {
         if (!isAuthenticated) {
@@ -99,19 +100,57 @@ const Cart = () => {
         }
     }, [isAuthenticated]);
 
+    // When cart items change, ensure we only keep selected items that still exist in cart
+    useEffect(() => {
+        const cartIds = new Set(cartItems.map(item => getItemKey(item)));
+        setSelectedItems(prev => {
+            const next = new Set();
+            prev.forEach(id => {
+                if (cartIds.has(id)) next.add(id);
+            });
+            return next;
+        });
+    }, [cartItems]);
+
+    const toggleSelection = (item) => {
+        const id = getItemKey(item);
+        setSelectedItems(prev => {
+            const next = new Set(prev);
+            if (next.has(id)) {
+                next.delete(id);
+            } else {
+                next.add(id);
+            }
+            return next;
+        });
+    };
+
+    const toggleAll = () => {
+        if (selectedItems.size === cartItems.length) {
+            setSelectedItems(new Set());
+        } else {
+            setSelectedItems(new Set(cartItems.map(item => getItemKey(item))));
+        }
+    };
+
+    const selectedCartItems = useMemo(
+        () => cartItems.filter(item => selectedItems.has(getItemKey(item))),
+        [cartItems, selectedItems]
+    );
+
     const total = useMemo(
         () =>
-            cartItems.reduce((sum, item) => {
+            selectedCartItems.reduce((sum, item) => {
                 const price = Number(item?.price) || 0;
                 const quantity = Number(item?.quantity) || 1;
                 return sum + price * quantity;
             }, 0),
-        [cartItems]
+        [selectedCartItems]
     );
 
     const totalItems = useMemo(
-        () => cartItems.reduce((sum, item) => sum + (Number(item?.quantity) || 1), 0),
-        [cartItems]
+        () => selectedCartItems.reduce((sum, item) => sum + (Number(item?.quantity) || 1), 0),
+        [selectedCartItems]
     );
 
     const updateQuantity = (item, direction) => {
@@ -129,9 +168,18 @@ const Cart = () => {
         const quantity = Number(item?.quantity) || 1;
         const maxStock = Math.max(Number(item?.countInStock) || 1, 1);
         const itemTotal = (Number(item?.price) || 0) * quantity;
+        const isSelected = selectedItems.has(getItemKey(item));
 
         return (
             <Surface style={styles.itemCard}>
+                <TouchableOpacity 
+                    style={styles.checkboxContainer} 
+                    onPress={() => toggleSelection(item)}
+                >
+                    <View style={[styles.checkbox, isSelected && styles.checkboxSelected]}>
+                        {isSelected && <Ionicons name="checkmark" size={16} color={colors.white} />}
+                    </View>
+                </TouchableOpacity>
                 <Image source={getImageSource(item)} style={styles.productImage} resizeMode="cover" />
                 <View style={styles.itemMeta}>
                     <TouchableOpacity style={styles.inlineDeleteButton} onPress={() => dispatch(removeFromCart(item))}>
@@ -184,8 +232,20 @@ const Cart = () => {
     return (
         <Surface style={styles.container}>
             <View style={styles.cartHeaderCard}>
-                <Text style={styles.cartHeaderTitle}>Your Cart</Text>
-                <Text style={styles.cartHeaderSubtitle}>{totalItems} item(s) ready for checkout</Text>
+                <View style={styles.headerRow}>
+                    <View>
+                        <Text style={styles.cartHeaderTitle}>Your Cart</Text>
+                        <Text style={styles.cartHeaderSubtitle}>{cartItems.length} item(s) total</Text>
+                    </View>
+                    {cartItems.length > 0 && (
+                        <TouchableOpacity style={styles.selectAllBtn} onPress={toggleAll}>
+                            <View style={[styles.checkbox, selectedItems.size === cartItems.length && styles.checkboxSelected]}>
+                                {selectedItems.size === cartItems.length && <Ionicons name="checkmark" size={16} color={colors.white} />}
+                            </View>
+                            <Text style={styles.selectAllText}>Select All</Text>
+                        </TouchableOpacity>
+                    )}
+                </View>
             </View>
 
             {cartItems.length > 0 ? (
@@ -225,10 +285,13 @@ const Cart = () => {
                         buttonColor={colors.primary}
                         textColor={colors.white}
                         style={styles.checkoutButton}
-                        onPress={() => navigation.navigate("Checkout")}
-                        disabled={!cartItems.length}
+                        onPress={() => navigation.navigate("Checkout", { 
+                            screen: "Shipping", 
+                            params: { selectedItems: selectedCartItems } 
+                        })}
+                        disabled={!selectedCartItems.length}
                     >
-                        Checkout
+                        Checkout ({totalItems})
                     </Button>
                 </View>
             </View>
@@ -243,7 +306,7 @@ const styles = StyleSheet.create({
     },
     cartHeaderCard: {
         marginHorizontal: 14,
-        marginTop: 14,
+        marginTop: 60, // Increased to avoid status bar overlap
         marginBottom: 6,
         backgroundColor: colors.white,
         borderRadius: 14,
@@ -262,6 +325,41 @@ const styles = StyleSheet.create({
         marginTop: 4,
         fontSize: 12,
         color: colors.textLight,
+    },
+    headerRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+    },
+    selectAllBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: 4,
+    },
+    selectAllText: {
+        marginLeft: 8,
+        fontSize: 13,
+        fontWeight: '600',
+        color: colors.text,
+    },
+    checkboxContainer: {
+        padding: 4,
+        marginRight: 8,
+        justifyContent: 'center',
+    },
+    checkbox: {
+        width: 22,
+        height: 22,
+        borderRadius: 6,
+        borderWidth: 2,
+        borderColor: colors.light,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: colors.white,
+    },
+    checkboxSelected: {
+        backgroundColor: colors.primary,
+        borderColor: colors.primary,
     },
     listContent: {
         paddingHorizontal: 14,

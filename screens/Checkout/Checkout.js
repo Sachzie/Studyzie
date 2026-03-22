@@ -11,6 +11,7 @@ import AuthGlobal from '../../backend/Context/Store/AuthGlobal'
 import Toast from 'react-native-toast-message'
 import axios from 'axios'
 import baseURL from '../assets/common/baseurl'
+import colors from '../assets/common/colors'
 
 const countries = require("../assets/data/countries.json");
 
@@ -29,15 +30,19 @@ const Checkout = (props) => {
 
     const navigation = useNavigation()
     const cartItems = useSelector(state => state.cartItems)
+    
+    // Use selectedItems from route params if available, otherwise fallback to all cart items
+    const selectedItems = props.route?.params?.selectedItems || cartItems;
+    
     const context = useContext(AuthGlobal);
 
     const subtotal = useMemo(() => {
-        return cartItems.reduce((sum, item) => {
+        return selectedItems.reduce((sum, item) => {
             const price = Number(item?.price) || 0
             const quantity = Number(item?.quantity) || 1
             return sum + price * quantity
         }, 0)
-    }, [cartItems])
+    }, [selectedItems])
 
     const discountValue = useMemo(() => {
         if (!promoPercent) return 0
@@ -53,7 +58,7 @@ const Checkout = (props) => {
         })}`
 
     useEffect(() => {
-        setOrderItems(cartItems)
+        setOrderItems(selectedItems)
         if (context.stateUser.isAuthenticated) {
             setUser(context.stateUser.user.userId)
         } else {
@@ -67,9 +72,9 @@ const Checkout = (props) => {
         }
 
         return () => {
-            setOrderItems();
+            setOrderItems([]);
         }
-    }, [])
+    }, [selectedItems])
 
     const checkOut = () => {
         if (!phone || !address || !city || !zip) {
@@ -228,8 +233,8 @@ const Checkout = (props) => {
                 <View style={styles.buttonContainer}>
                     <Button
                         mode="contained"
-                        buttonColor="#103B28"
-                        textColor="#FFFFFF"
+                        buttonColor={colors.primary}
+                        textColor={colors.white}
                         onPress={() => checkOut()}
                         style={styles.confirmButton}
                     >
@@ -244,16 +249,16 @@ const Checkout = (props) => {
 const styles = StyleSheet.create({
     container: {
         flexGrow: 1,
-        backgroundColor: '#F9FAFB'
+        backgroundColor: colors.inputBg
     },
     pickerContainer: {
         width: '80%',
         alignSelf: 'center',
         borderWidth: 1,
-        borderColor: '#E5E7EB',
+        borderColor: colors.light,
         borderRadius: 8,
         marginBottom: 20,
-        backgroundColor: 'white'
+        backgroundColor: colors.white
     },
     promoSection: {
         width: '80%',
@@ -263,7 +268,7 @@ const styles = StyleSheet.create({
     promoTitle: {
         fontSize: 14,
         fontWeight: '700',
-        color: '#374151',
+        color: colors.text,
         marginBottom: 8,
     },
     promoRow: {
@@ -276,18 +281,18 @@ const styles = StyleSheet.create({
         height: 48,
         borderRadius: 10,
         borderWidth: 1,
-        borderColor: '#E5E7EB',
+        borderColor: colors.light,
         paddingHorizontal: 12,
-        backgroundColor: '#FFFFFF',
+        backgroundColor: colors.white,
     },
     promoButton: {
         paddingVertical: 12,
         paddingHorizontal: 16,
         borderRadius: 10,
-        backgroundColor: '#103B28',
+        backgroundColor: colors.primary,
     },
     promoButtonText: {
-        color: '#FFFFFF',
+        color: colors.white,
         fontWeight: '700',
         fontSize: 13,
     },
@@ -297,18 +302,18 @@ const styles = StyleSheet.create({
         fontWeight: '600',
     },
     promoSuccess: {
-        color: '#16A34A',
+        color: colors.success,
     },
     promoError: {
-        color: '#DC2626',
+        color: colors.error,
     },
     summaryCard: {
         width: '80%',
         alignSelf: 'center',
-        backgroundColor: '#FFFFFF',
+        backgroundColor: colors.white,
         borderRadius: 12,
         borderWidth: 1,
-        borderColor: '#E5E7EB',
+        borderColor: colors.light,
         padding: 14,
         marginBottom: 20,
     },
@@ -320,27 +325,27 @@ const styles = StyleSheet.create({
     },
     summaryLabel: {
         fontSize: 13,
-        color: '#6B7280',
+        color: colors.textLight,
         fontWeight: '600',
     },
     summaryValue: {
         fontSize: 13,
-        color: '#111827',
+        color: colors.text,
         fontWeight: '700',
     },
     summaryDivider: {
         height: 1,
-        backgroundColor: '#E5E7EB',
+        backgroundColor: colors.light,
         marginVertical: 8,
     },
     summaryTotalLabel: {
         fontSize: 15,
-        color: '#111827',
+        color: colors.text,
         fontWeight: '800',
     },
     summaryTotalValue: {
         fontSize: 16,
-        color: '#103B28',
+        color: colors.primary,
         fontWeight: '800',
     },
     buttonContainer: {

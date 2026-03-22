@@ -12,6 +12,7 @@ import Reviews from "../../screens/User/Reviews";
 import { Ionicons } from "@expo/vector-icons";
 import CartIcon from "../../screens/Shared/CartIcon";
 import AuthGlobal from "../Context/Store/AuthGlobal";
+import colors from "../../screens/assets/common/colors";
 const Tab = createBottomTabNavigator();
 
 const Main = () => {
@@ -32,20 +33,36 @@ const Main = () => {
         bottom: 20,
         left: 20,
         right: 20,
-        elevation: 5,
-        backgroundColor: '#ffffff',
+        elevation: 0,
+        backgroundColor: 'rgba(141, 123, 104, 0.85)', // colors.primary with opacity for glass effect
         borderRadius: 30,
         height: 60,
+        borderTopWidth: 1,
+        borderTopColor: 'rgba(255, 255, 255, 0.2)',
+        borderLeftWidth: 1,
+        borderLeftColor: 'rgba(255, 255, 255, 0.2)',
+        borderRightWidth: 1,
+        borderRightColor: 'rgba(255, 255, 255, 0.2)',
+        borderBottomWidth: 1,
+        borderBottomColor: 'rgba(255, 255, 255, 0.1)',
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.15,
-        shadowRadius: 10,
-        borderTopWidth: 0,
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.3,
+        shadowRadius: 20,
     };
 
     const getCartTabBarStyle = (route) => {
         const routeName = getFocusedRouteNameFromRoute(route) ?? "Cart";
         if (["Checkout", "Shipping", "Payment", "Confirm"].includes(routeName)) {
+            return { display: 'none' };
+        }
+        return tabBarBaseStyle;
+    };
+
+    const getHomeTabBarStyle = (route) => {
+        const routeName = getFocusedRouteNameFromRoute(route) ?? "Main";
+        // Hide the bottom tab bar on Product Detail to avoid overlap with the bottom action bar
+        if (["Product Detail", "PromotionDetail"].includes(routeName)) {
             return { display: 'none' };
         }
         return tabBarBaseStyle;
@@ -58,20 +75,25 @@ const Main = () => {
                 headerShown: false,
                 tabBarHideOnKeyboard: true,
                 tabBarShowLabel: false,
-                tabBarActiveTintColor: '#103B28',
+                tabBarActiveTintColor: '#ffffff', // Active icon white
+                tabBarInactiveTintColor: 'rgba(255, 255, 255, 0.5)', // Inactive icon faded white
                 tabBarStyle: tabBarBaseStyle,
                 tabBarItemStyle: {
                     padding: 5,
                     justifyContent: 'center',
                     alignItems: 'center',
-                }
+                },
+                tabBarBackground: () => (
+                    <View style={{ flex: 1, backgroundColor: 'transparent' }} />
+                ),
             }}
         >
             <Tab.Screen
                 name="Home"
                 component={HomeNavigator}
-                options={{
+                options={({ route }) => ({
                     headerShown: false,
+                    tabBarStyle: getHomeTabBarStyle(route),
                     tabBarIcon: ({ color }) => (
                         <Ionicons
                             name="home"
@@ -80,7 +102,7 @@ const Main = () => {
                             size={30}
                         />
                     )
-                }}
+                })}
             />
 
             <Tab.Screen

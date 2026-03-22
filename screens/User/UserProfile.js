@@ -3,6 +3,7 @@ import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import axios from "axios";
 import baseURL from "../assets/common/baseurl";
+import colors from "../assets/common/colors";
 import AuthGlobal from "../../backend/Context/Store/AuthGlobal";
 import { logoutUser } from "../../backend/Context/Actions/Auth.actions";
 import { Ionicons } from "@expo/vector-icons";
@@ -331,7 +332,7 @@ const UserProfile = () => {
     if (loading) {
         return (
             <View style={[styles.screen, styles.loadingContainer]}>
-                <ActivityIndicator size="large" color="#103B28" />
+                <ActivityIndicator size="large" color={colors.primary} />
             </View>
         );
     }
@@ -362,7 +363,7 @@ const UserProfile = () => {
 
             <View style={styles.detailsCard}>
                 <View style={styles.cardHeader}>
-                     <Ionicons name="person-circle-outline" size={24} color="#103B28" />
+                     <Ionicons name="person-circle-outline" size={24} color={colors.primary} />
                      <Text style={styles.sectionTitle}>Account Details</Text>
                 </View>
 
@@ -453,7 +454,7 @@ const UserProfile = () => {
             </View>
 
             <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-                <Ionicons name="log-out-outline" size={20} color="#FFFFFF" style={{marginRight: 8}} />
+                <Ionicons name="log-out-outline" size={20} color={colors.error} style={{marginRight: 8}} />
                 <Text style={styles.logoutButtonText}>Sign Out</Text>
             </TouchableOpacity>
         </ScrollView>
@@ -492,7 +493,7 @@ const styles = StyleSheet.create({
         width: 100,
         height: 100,
         borderRadius: 50,
-        backgroundColor: "#103B28",
+        backgroundColor: colors.primary,
         alignItems: "center",
         justifyContent: "center",
         marginBottom: 12,
@@ -553,7 +554,7 @@ const styles = StyleSheet.create({
     sectionTitle: {
         fontSize: 18,
         fontWeight: "700",
-        color: "#103B28",
+        color: colors.primary,
     },
     detailRow: {
         paddingVertical: 12,
@@ -617,39 +618,42 @@ const styles = StyleSheet.create({
         fontWeight: "600",
     },
     saveButton: {
-        marginTop: 18,
-        backgroundColor: "#103B28",
-        borderRadius: 12,
-        height: 50,
+        marginTop: 20,
+        backgroundColor: colors.primary,
+        borderRadius: 10,
+        paddingVertical: 12,
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "center",
+        shadowColor: colors.black,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 2,
     },
     saveButtonText: {
-        color: "#FFFFFF",
-        fontSize: 15,
+        color: colors.white,
+        fontSize: 14,
         fontWeight: "700",
     },
     disabledButton: {
-        opacity: 0.7,
+        opacity: 0.6,
     },
     logoutButton: {
-        backgroundColor: "#EF4444", // Red for logout
-        borderRadius: 12,
-        height: 56,
+        backgroundColor: colors.white,
+        borderWidth: 1,
+        borderColor: colors.error,
+        borderRadius: 10,
+        paddingVertical: 12,
         flexDirection: 'row',
         alignItems: "center",
         justifyContent: "center",
-        shadowColor: "#EF4444",
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.2,
-        shadowRadius: 8,
-        elevation: 4,
+        marginTop: 10,
         marginBottom: 10,
     },
     logoutButtonText: {
-        color: "#FFFFFF",
-        fontSize: 16,
+        color: colors.error,
+        fontSize: 14,
         fontWeight: "600",
     },
 });
