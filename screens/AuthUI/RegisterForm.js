@@ -14,6 +14,7 @@ import * as Google from "expo-auth-session/providers/google";
 import * as WebBrowser from "expo-web-browser";
 import { loginWithGoogle } from "../../backend/Context/Actions/Auth.actions";
 import AuthGlobal from "../../backend/Context/Store/AuthGlobal";
+import * as AuthSession from "expo-auth-session";
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -37,12 +38,21 @@ const RegisterForm = ({ onToggle }) => {
     const [isGoogleLoading, setIsGoogleLoading] = useState(false);
     const context = useContext(AuthGlobal);
 
+    const androidClientId = "389416302400-kbkq1su4lo0gp35gutlrha4mq5f4mbgv.apps.googleusercontent.com";
+    const webClientId = "389416302400-g2us37q2kh02t56eca11ncbqj6g3kljp.apps.googleusercontent.com";
+    const googleScheme = `com.googleusercontent.apps.${androidClientId.split(".")[0]}`;
+    const redirectUri = AuthSession.makeRedirectUri({
+        native: `${googleScheme}:/oauthredirect`,
+    });
+
     const [request, response, promptAsync] = Google.useAuthRequest(
         {
-            androidClientId: "389416302400-kbkq1su4lo0gp35gutlrha4mq5f4mbgv.apps.googleusercontent.com",
-            webClientId: "389416302400-g2us37q2kh02t56eca11ncbqj6g3kljp.apps.googleusercontent.com",
+            androidClientId,
+            webClientId,
+            expoClientId: webClientId,
+            redirectUri,
         },
-        { scheme: "studyzie" }
+        undefined
     );
 
     useEffect(() => {

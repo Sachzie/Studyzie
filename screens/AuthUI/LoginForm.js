@@ -9,6 +9,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import StudyzieLogo from "../../Shared/StudyzieLogo";
 import * as Google from "expo-auth-session/providers/google";
 import * as WebBrowser from "expo-web-browser";
+import * as AuthSession from "expo-auth-session";
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -20,12 +21,21 @@ const LoginForm = ({ onToggle }) => {
     const [isLoading, setIsLoading] = useState(false);
     const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
+    const androidClientId = "389416302400-kbkq1su4lo0gp35gutlrha4mq5f4mbgv.apps.googleusercontent.com";
+    const webClientId = "389416302400-g2us37q2kh02t56eca11ncbqj6g3kljp.apps.googleusercontent.com";
+    const googleScheme = `com.googleusercontent.apps.${androidClientId.split(".")[0]}`;
+    const redirectUri = AuthSession.makeRedirectUri({
+        native: `${googleScheme}:/oauthredirect`,
+    });
+
     const [request, response, promptAsync] = Google.useAuthRequest(
         {
-            androidClientId: "389416302400-kbkq1su4lo0gp35gutlrha4mq5f4mbgv.apps.googleusercontent.com",
-            webClientId: "389416302400-g2us37q2kh02t56eca11ncbqj6g3kljp.apps.googleusercontent.com",
+            androidClientId,
+            webClientId,
+            expoClientId: webClientId,
+            redirectUri,
         },
-        { scheme: "studyzie" }
+        undefined
     );
 
     useEffect(() => {

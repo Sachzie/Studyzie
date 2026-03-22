@@ -20,6 +20,20 @@
       "package": "com.studyzie.app",
       "versionCode": 1,
       "googleServicesFile": "./google-services.json",
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "data": [
+            {
+              "scheme": "com.googleusercontent.apps.389416302400-kbkq1su4lo0gp35gutlrha4mq5f4mbgv"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
+        }
+      ],
       "adaptiveIcon": {
         "foregroundImage": "./screens/assets/adaptive-icon.png",
         "backgroundColor": "#FFFFFF"
