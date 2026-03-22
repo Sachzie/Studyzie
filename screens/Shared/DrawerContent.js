@@ -5,6 +5,7 @@ import { DrawerContentScrollView } from '@react-navigation/drawer';
 import { Ionicons } from '@expo/vector-icons';
 import AuthGlobal from '../../backend/Context/Store/AuthGlobal';
 import { logoutUser } from '../../backend/Context/Actions/Auth.actions';
+import StudyzieLogo from '../../Shared/StudyzieLogo';
 
 const DrawerContent = (props) => {
     const navigation = useNavigation();
@@ -28,6 +29,9 @@ const DrawerContent = (props) => {
         <View style={styles.container}>
             <DrawerContentScrollView {...props} contentContainerStyle={styles.drawerScroll}>
                 <View style={styles.header}>
+                    <View style={styles.logoContainer}>
+                        <StudyzieLogo size={60} color="#FFFFFF" />
+                    </View>
                     <View style={styles.profileInfo}>
                         <View style={styles.avatar}>
                             <Text style={styles.avatarText}>{userName.charAt(0).toUpperCase()}</Text>
@@ -104,6 +108,10 @@ const styles = StyleSheet.create({
         padding: 20,
         backgroundColor: '#103B28',
         paddingTop: 60,
+    },
+    logoContainer: {
+        marginBottom: 15,
+        alignItems: 'flex-start',
     },
     profileInfo: {
         flexDirection: 'row',

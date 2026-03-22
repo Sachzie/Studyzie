@@ -10,6 +10,7 @@ import { Ionicons } from "@expo/vector-icons";
 import mime from "mime";
 import * as Google from "expo-auth-session/providers/google";
 import * as WebBrowser from "expo-web-browser";
+import StudyzieLogo from "../../Shared/StudyzieLogo";
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -193,8 +194,9 @@ const Register = () => {
             style={styles.screen}
         >
             <View style={styles.headerContainer}>
-                <Text style={styles.welcomeText}>Hello! Register to</Text>
-                <Text style={styles.brandText}>get started.</Text>
+                <StudyzieLogo size={80} />
+                <Text style={styles.welcomeText}>Create Account</Text>
+                <Text style={styles.brandText}>Join Studyzie Today</Text>
             </View>
 
             <View style={styles.formContainer}>

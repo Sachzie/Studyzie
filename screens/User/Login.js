@@ -7,6 +7,7 @@ import { Ionicons } from "@expo/vector-icons";
 import Notification from "../../Shared/Notification";
 import * as Google from "expo-auth-session/providers/google";
 import * as WebBrowser from "expo-web-browser";
+import StudyzieLogo from "../../Shared/StudyzieLogo";
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -85,7 +86,8 @@ const Login = () => {
         >
             <ScrollView contentContainerStyle={styles.scrollContent}>
                 <View style={styles.headerContainer}>
-                    <Text style={styles.welcomeText}>Welcome! Login to</Text>
+                    <StudyzieLogo size={80} />
+                    <Text style={styles.welcomeText}>Welcome Back</Text>
                     <Text style={styles.brandText}>Studyzie.</Text>
                 </View>
 
