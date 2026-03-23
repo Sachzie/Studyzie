@@ -1,12 +1,13 @@
-import React, { useState, useContext } from "react";
-import { Image, View, StyleSheet, Text, ScrollView, TouchableOpacity, Dimensions } from "react-native";
+import React, { useState, useContext, useEffect, useMemo } from "react";
+import { Image, View, StyleSheet, Text, ScrollView, TouchableOpacity, Dimensions, ActivityIndicator } from "react-native";
 import { Surface } from "react-native-paper";
-import { useDispatch, useSelector } from 'react-redux';
+import { useDispatch } from 'react-redux';
 import { addToCart } from "../../backend/Redux/Actions/cartActions";
 import Toast from "react-native-toast-message";
 import { Ionicons } from "@expo/vector-icons";
 import AuthGlobal from "../../backend/Context/Store/AuthGlobal";
 import { useNavigation } from "@react-navigation/native";
+import axios from "axios";
 import baseURL from "../assets/common/baseurl";
 import colors from "../assets/common/colors";
 
@@ -34,17 +35,66 @@ const SingleProduct = ({ route }) => {
     const context = useContext(AuthGlobal);
     const isAuthenticated = Boolean(context?.stateUser?.isAuthenticated);
 
-    const [qty, setQty] = useState(1);
+    const [product, setProduct] = useState(item || {});
+    const [detailsLoading, setDetailsLoading] = useState(false);
+
+    useEffect(() => {
+        let mounted = true;
+
+        const hydrateProductDetails = async () => {
+            const productId = item?._id || item?.id;
+            if (!productId || String(productId).startsWith("local-")) {
+                return;
+            }
+
+            setDetailsLoading(true);
+            try {
+                const response = await axios.get(`${baseURL}products/${productId}`);
+                const incoming = response?.data || {};
+                if (!mounted) return;
+                setProduct((prev) => ({
+                    ...prev,
+                    ...incoming,
+                    imageSource: prev?.imageSource || incoming?.imageSource || null,
+                }));
+            } catch (error) {
+                // Keep fallback item data if detail fetch fails.
+            } finally {
+                if (mounted) {
+                    setDetailsLoading(false);
+                }
+            }
+        };
+
+        setProduct(item || {});
+        hydrateProductDetails();
+
+        return () => {
+            mounted = false;
+        };
+    }, [item]);
 
     const formatPeso = (value) => `\u20B1${Number(value || 0).toLocaleString("en-PH", {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
     })}`;
 
-    const imageUri = resolveImageUri(item?.image || "");
+    const imageUri = resolveImageUri(product?.image || "");
     const resolvedImage = imageUri
         ? { uri: imageUri }
-        : (item?.imageSource || { uri: FALLBACK_IMAGE });
+        : (product?.imageSource || item?.imageSource || { uri: FALLBACK_IMAGE });
+
+    const productReviews = useMemo(() => (
+        Array.isArray(product?.reviews)
+            ? product.reviews.filter((review) => Number(review?.rating) > 0)
+            : []
+    ), [product?.reviews]);
+
+    const averageRating = useMemo(() => {
+        if (!productReviews.length) return 0;
+        const total = productReviews.reduce((sum, review) => sum + Number(review?.rating || 0), 0);
+        return total / productReviews.length;
+    }, [productReviews]);
 
     const handleAddToCart = () => {
         if (!isAuthenticated) {
@@ -58,7 +108,7 @@ const SingleProduct = ({ route }) => {
             return;
         }
 
-        if (item.countInStock < 1) {
+        if (Number(product?.countInStock) < 1) {
             Toast.show({
                 topOffset: 60,
                 type: "error",
@@ -68,12 +118,12 @@ const SingleProduct = ({ route }) => {
             return;
         }
 
-        dispatch(addToCart({ ...item, quantity: 1 }));
+        dispatch(addToCart({ ...product, quantity: 1 }));
         Toast.show({
             topOffset: 60,
             type: "success",
             text1: "Added to Cart",
-            text2: `${item.name} has been added to your cart.`
+            text2: `${product.name} has been added to your cart.`
         });
     };
 
@@ -89,7 +139,7 @@ const SingleProduct = ({ route }) => {
             return;
         }
 
-        if (item.countInStock < 1) {
+        if (Number(product?.countInStock) < 1) {
             Toast.show({
                 topOffset: 60,
                 type: "error",
@@ -100,7 +150,7 @@ const SingleProduct = ({ route }) => {
         }
 
         // Create a single item cart structure for checkout
-        const buyNowItem = { ...item, quantity: 1 };
+        const buyNowItem = { ...product, quantity: 1 };
         
         // Add to actual cart as well just in case they go back
         dispatch(addToCart(buyNowItem));
@@ -129,54 +179,106 @@ const SingleProduct = ({ route }) => {
                 <View style={styles.contentContainer}>
                     <View style={styles.headerRow}>
                         <View style={{ flex: 1 }}>
-                            <Text style={styles.brand}>{item.brand || "Studyzie Essentials"}</Text>
-                            <Text style={styles.name}>{item.name}</Text>
+                            <Text style={styles.brand}>{product.brand || "Studyzie Essentials"}</Text>
+                            <Text style={styles.name}>{product.name}</Text>
                         </View>
-                        <Text style={styles.price}>{formatPeso(item.price)}</Text>
+                        <Text style={styles.price}>{formatPeso(product.price)}</Text>
                     </View>
 
                     <View style={styles.divider} />
 
                     <Text style={styles.sectionTitle}>Description</Text>
-                    <Text style={styles.description}>{item.description}</Text>
+                    <Text style={styles.description}>{product.description}</Text>
 
                     <View style={styles.divider} />
 
                     <View style={styles.metaContainer}>
                         <View style={styles.metaItem}>
                             <Text style={styles.metaLabel}>Availability</Text>
-                            <Text style={[styles.metaValue, item.countInStock > 0 ? styles.inStock : styles.outStock]}>
-                                {item.countInStock > 0 ? "In Stock" : "Out of Stock"}
+                            <Text style={[styles.metaValue, Number(product?.countInStock) > 0 ? styles.inStock : styles.outStock]}>
+                                {Number(product?.countInStock) > 0 ? "In Stock" : "Out of Stock"}
                             </Text>
                         </View>
                         <View style={styles.metaItem}>
                             <Text style={styles.metaLabel}>Category</Text>
-                            <Text style={styles.metaValue}>{item.category?.name || "General"}</Text>
+                            <Text style={styles.metaValue}>{product.category?.name || "General"}</Text>
                         </View>
                     </View>
+
+                    <View style={styles.divider} />
+
+                    <View style={styles.reviewHeader}>
+                        <Text style={styles.sectionTitle}>Customer Reviews</Text>
+                        {detailsLoading ? <ActivityIndicator size="small" color={colors.primary} /> : null}
+                    </View>
+                    {productReviews.length > 0 ? (
+                        <>
+                            <View style={styles.ratingSummary}>
+                                <Text style={styles.ratingValue}>{averageRating.toFixed(1)}</Text>
+                                <View style={styles.starsRow}>
+                                    {[1, 2, 3, 4, 5].map((star) => (
+                                        <Ionicons
+                                            key={`avg-star-${star}`}
+                                            name={star <= Math.round(averageRating) ? "star" : "star-outline"}
+                                            size={16}
+                                            color="#F59E0B"
+                                        />
+                                    ))}
+                                </View>
+                                <Text style={styles.ratingCount}>({productReviews.length} reviews)</Text>
+                            </View>
+                            {productReviews.map((review, index) => (
+                                <View
+                                    key={review?._id || `${review?.user || "review"}-${index}`}
+                                    style={styles.reviewCard}
+                                >
+                                    <View style={styles.reviewTopRow}>
+                                        <Text style={styles.reviewName}>{review?.name || "Studyzie Customer"}</Text>
+                                        <View style={styles.starsRow}>
+                                            {[1, 2, 3, 4, 5].map((star) => (
+                                                <Ionicons
+                                                    key={`review-star-${index}-${star}`}
+                                                    name={star <= Number(review?.rating || 0) ? "star" : "star-outline"}
+                                                    size={14}
+                                                    color="#F59E0B"
+                                                />
+                                            ))}
+                                        </View>
+                                    </View>
+                                    {review?.comment ? (
+                                        <Text style={styles.reviewComment}>{review.comment}</Text>
+                                    ) : null}
+                                </View>
+                            ))}
+                        </>
+                    ) : (
+                        <Text style={styles.noReviewsText}>
+                            No reviews yet from delivered orders for this product.
+                        </Text>
+                    )}
                 </View>
             </ScrollView>
 
             <View style={styles.bottomBar}>
                 <View style={styles.buttonRow}>
                     <TouchableOpacity
-                        style={[styles.addToCartIconBtn, item.countInStock < 1 && styles.disabledButton]}
+                        style={[styles.addToCartIconBtn, Number(product?.countInStock) < 1 && styles.disabledButton]}
                         onPress={handleAddToCart}
-                        disabled={item.countInStock < 1}
+                        disabled={Number(product?.countInStock) < 1}
                     >
                         <Ionicons name="cart-outline" size={24} color={colors.primary} />
                     </TouchableOpacity>
 
                     <TouchableOpacity
-                        style={[styles.buyNowButton, item.countInStock < 1 && styles.disabledButton]}
+                        style={[styles.buyNowButton, Number(product?.countInStock) < 1 && styles.disabledButton]}
                         onPress={handleBuyNow}
-                        disabled={item.countInStock < 1}
+                        disabled={Number(product?.countInStock) < 1}
                     >
                         <Text style={styles.buyNowText}>
-                            {item.countInStock > 0 ? "Buy now" : "Out of Stock"}
+                            {Number(product?.countInStock) > 0 ? "Buy now" : "Out of Stock"}
                         </Text>
-                        {item.countInStock > 0 && (
-                            <Text style={styles.buyNowPrice}>{formatPeso(item.price)}</Text>
+                        {Number(product?.countInStock) > 0 && (
+                            <Text style={styles.buyNowPrice}>{formatPeso(product.price)}</Text>
                         )}
                     </TouchableOpacity>
                 </View>
@@ -293,6 +395,61 @@ const styles = StyleSheet.create({
     },
     outStock: {
         color: "#DC2626",
+    },
+    reviewHeader: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
+        marginBottom: 8,
+    },
+    ratingSummary: {
+        flexDirection: "row",
+        alignItems: "center",
+        marginBottom: 12,
+    },
+    ratingValue: {
+        fontSize: 20,
+        fontWeight: "700",
+        color: "#111827",
+        marginRight: 8,
+    },
+    starsRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 2,
+    },
+    ratingCount: {
+        marginLeft: 8,
+        fontSize: 12,
+        color: "#6B7280",
+    },
+    reviewCard: {
+        borderWidth: 1,
+        borderColor: "#E5E7EB",
+        borderRadius: 10,
+        padding: 10,
+        marginBottom: 10,
+        backgroundColor: "#FAFAFA",
+    },
+    reviewTopRow: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
+        marginBottom: 6,
+    },
+    reviewName: {
+        fontSize: 13,
+        fontWeight: "700",
+        color: "#374151",
+    },
+    reviewComment: {
+        fontSize: 13,
+        lineHeight: 18,
+        color: "#4B5563",
+    },
+    noReviewsText: {
+        fontSize: 13,
+        color: "#6B7280",
     },
     bottomBar: {
         position: 'absolute',
