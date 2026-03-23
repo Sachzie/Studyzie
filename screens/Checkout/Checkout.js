@@ -35,6 +35,7 @@ const Checkout = (props) => {
     const selectedItems = props.route?.params?.selectedItems || cartItems;
     
     const context = useContext(AuthGlobal);
+    const fieldPlaceholderColor = 'rgba(0,0,0,0.6)';
 
     const subtotal = useMemo(() => {
         return selectedItems.reduce((sum, item) => {
@@ -147,24 +148,32 @@ const Checkout = (props) => {
                     name={"phone"}
                     value={phone}
                     keyboardType={"numeric"}
+                    placeholderTextColor={fieldPlaceholderColor}
+                    inputStyle={styles.shippingInput}
                     onChangeText={(text) => setPhone(text)}
                 />
                 <Input
                     placeholder={"Shipping Address 1"}
                     name={"ShippingAddress1"}
                     value={address}
+                    placeholderTextColor={fieldPlaceholderColor}
+                    inputStyle={styles.shippingInput}
                     onChangeText={(text) => setAddress(text)}
                 />
                 <Input
                     placeholder={"Shipping Address 2"}
                     name={"ShippingAddress2"}
                     value={address2}
+                    placeholderTextColor={fieldPlaceholderColor}
+                    inputStyle={styles.shippingInput}
                     onChangeText={(text) => setAddress2(text)}
                 />
                 <Input
                     placeholder={"City"}
                     name={"city"}
                     value={city}
+                    placeholderTextColor={fieldPlaceholderColor}
+                    inputStyle={styles.shippingInput}
                     onChangeText={(text) => setCity(text)}
                 />
                 <Input
@@ -172,12 +181,15 @@ const Checkout = (props) => {
                     name={"zip"}
                     value={zip}
                     keyboardType={"numeric"}
+                    placeholderTextColor={fieldPlaceholderColor}
+                    inputStyle={styles.shippingInput}
                     onChangeText={(text) => setZip(text)}
                 />
                 
                 <View style={styles.pickerContainer}>
                     <Picker
                         mode="dropdown"
+                        style={styles.countryPicker}
                         selectedValue={country}
                         onValueChange={(e) => setCountry(e)}
                     >
@@ -193,6 +205,7 @@ const Checkout = (props) => {
                         <TextInput
                             style={styles.promoInput}
                             placeholder="Enter promo code"
+                            placeholderTextColor={fieldPlaceholderColor}
                             value={promoCode}
                             autoCapitalize="characters"
                             onChangeText={(text) => {
@@ -251,6 +264,11 @@ const styles = StyleSheet.create({
         flexGrow: 1,
         backgroundColor: colors.inputBg
     },
+    shippingInput: {
+        backgroundColor: 'rgba(0,0,0,0.06)',
+        color: 'rgba(0,0,0,0.85)',
+        borderColor: 'rgba(0,0,0,0.45)',
+    },
     pickerContainer: {
         width: '80%',
         alignSelf: 'center',
@@ -259,6 +277,9 @@ const styles = StyleSheet.create({
         borderRadius: 8,
         marginBottom: 20,
         backgroundColor: colors.white
+    },
+    countryPicker: {
+        color: 'rgba(0,0,0,0.85)',
     },
     promoSection: {
         width: '80%',
@@ -283,7 +304,8 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: colors.light,
         paddingHorizontal: 12,
-        backgroundColor: colors.white,
+        backgroundColor: 'rgba(0,0,0,0.06)',
+        color: 'rgba(0,0,0,0.85)',
     },
     promoButton: {
         paddingVertical: 12,

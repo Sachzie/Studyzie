@@ -4,8 +4,9 @@ import { TextInput, StyleSheet } from 'react-native'
 const Input = (props) => {
     return (
         <TextInput
-            style={styles.input}
+            style={[styles.input, props.inputStyle]}
             placeholder={props.placeholder}
+            placeholderTextColor={props.placeholderTextColor || 'rgba(0,0,0,0.55)'}
             name={props.name}
             id={props.id}
             value={props.value}
@@ -24,6 +25,7 @@ const styles = StyleSheet.create({
         width: '80%',
         height: 60,
         backgroundColor: 'white',
+        color: 'rgba(0,0,0,0.85)',
         margin: 10,
         borderRadius: 20,
         padding: 10,
