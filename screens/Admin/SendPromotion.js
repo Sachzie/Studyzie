@@ -130,20 +130,46 @@ const SendPromotion = ({ navigation }) => {
             );
 
             if (response.data.success) {
+                const push = response?.data?.push || {};
+                const status = push?.status || "sent";
+                const delivered = Number(push?.delivered || response?.data?.count || 0);
+                const attempted = Number(push?.attempted || 0);
+                const failed = Number(push?.failed || 0);
+                const cleared = Number(push?.clearedInvalidTokens || 0);
+
+                let toastType = "success";
+                let toastText2 = `Promotion sent to ${delivered} devices!`;
+
+                if (status === "partial") {
+                    toastType = "info";
+                    toastText2 = `Sent to ${delivered}/${attempted}. Failed: ${failed}.`;
+                } else if (status === "failed") {
+                    toastType = "info";
+                    toastText2 = `Promotion saved, but push delivery failed for ${attempted} tokens.`;
+                } else if (status === "no-valid-tokens") {
+                    toastType = "info";
+                    toastText2 = "Promotion saved. No valid push tokens are registered.";
+                }
+
+                if (cleared > 0) {
+                    toastText2 += ` Cleared ${cleared} invalid token${cleared > 1 ? "s" : ""}.`;
+                }
+
                 Toast.show({
-                    type: "success",
+                    type: toastType,
                     text1: "Success",
-                    text2: `Promotion sent to ${response.data.count} devices!`,
+                    text2: toastText2,
                 });
                 loadActivePromotion();
                 navigation.goBack();
             }
         } catch (error) {
-            console.log(error);
+            console.log("Promotion broadcast failed:", error?.response?.data || error?.message || error);
+            const backendMessage = error?.response?.data?.error || error?.response?.data?.message;
             Toast.show({
                 type: "error",
                 text1: "Error",
-                text2: "Failed to send promotion",
+                text2: backendMessage || "Failed to send promotion",
             });
         } finally {
             setLoading(false);

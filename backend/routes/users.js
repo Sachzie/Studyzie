@@ -524,7 +524,7 @@ router.post('/broadcast-promotion', async (req, res) => {
       return res.status(400).json({ success: false, message: 'Title and message are required' });
     }
 
-    const users = await User.find({ pushToken: { $exists: true, $ne: '' } }).select('pushToken');
+    const users = await User.find({ pushToken: { $exists: true, $ne: '' } }).select('_id pushToken');
     const tokens = users.map(u => u.pushToken);
 
     if (tokens.length === 0) {
@@ -573,13 +573,49 @@ router.post('/broadcast-promotion', async (req, res) => {
       timestamp: new Date().toISOString(),
     };
 
-    await sendPushNotification(tokens, title, message, notificationPayload);
+    const pushReport = await sendPushNotification(
+      tokens,
+      title,
+      message,
+      notificationPayload,
+      { throwOnError: false }
+    );
+
+    let clearedInvalidTokens = 0;
+    if (Array.isArray(pushReport?.invalidDeviceTokens) && pushReport.invalidDeviceTokens.length > 0) {
+      const clearResult = await User.updateMany(
+        { pushToken: { $in: pushReport.invalidDeviceTokens } },
+        { $set: { pushToken: '' } }
+      );
+      clearedInvalidTokens = Number(clearResult?.modifiedCount || 0);
+    }
+
+    const attempted = Number(pushReport?.attempted || 0);
+    const delivered = Number(pushReport?.accepted || 0);
+    const failed = Number(pushReport?.failed || 0);
+
+    let pushStatus = "sent";
+    if (attempted === 0) {
+      pushStatus = "no-valid-tokens";
+    } else if (delivered > 0 && failed > 0) {
+      pushStatus = "partial";
+    } else if (delivered === 0 && failed > 0) {
+      pushStatus = "failed";
+    }
 
     res.status(200).json({
       success: true,
-      message: 'Broadcast sent successfully',
-      count: tokens.length,
+      message: 'Promotion processed successfully',
+      count: delivered,
       promotionActive: Boolean(savedPromotion),
+      push: {
+        status: pushStatus,
+        attempted,
+        delivered,
+        failed,
+        filteredOut: Number(pushReport?.filteredOut || 0),
+        clearedInvalidTokens,
+      },
     });
   } catch (error) {
     console.error('Broadcast error:', error);
