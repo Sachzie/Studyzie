@@ -35,7 +35,8 @@ const Checkout = (props) => {
     const selectedItems = props.route?.params?.selectedItems || cartItems;
     
     const context = useContext(AuthGlobal);
-    const fieldPlaceholderColor = 'rgba(0,0,0,0.6)';
+    const fieldPlaceholderColor = 'rgba(0,0,0,0.58)';
+    const fieldTextColor = 'rgba(0,0,0,0.72)';
 
     const subtotal = useMemo(() => {
         return selectedItems.reduce((sum, item) => {
@@ -149,6 +150,7 @@ const Checkout = (props) => {
                     value={phone}
                     keyboardType={"numeric"}
                     placeholderTextColor={fieldPlaceholderColor}
+                    selectionColor={fieldTextColor}
                     inputStyle={styles.shippingInput}
                     onChangeText={(text) => setPhone(text)}
                 />
@@ -157,6 +159,7 @@ const Checkout = (props) => {
                     name={"ShippingAddress1"}
                     value={address}
                     placeholderTextColor={fieldPlaceholderColor}
+                    selectionColor={fieldTextColor}
                     inputStyle={styles.shippingInput}
                     onChangeText={(text) => setAddress(text)}
                 />
@@ -165,6 +168,7 @@ const Checkout = (props) => {
                     name={"ShippingAddress2"}
                     value={address2}
                     placeholderTextColor={fieldPlaceholderColor}
+                    selectionColor={fieldTextColor}
                     inputStyle={styles.shippingInput}
                     onChangeText={(text) => setAddress2(text)}
                 />
@@ -173,6 +177,7 @@ const Checkout = (props) => {
                     name={"city"}
                     value={city}
                     placeholderTextColor={fieldPlaceholderColor}
+                    selectionColor={fieldTextColor}
                     inputStyle={styles.shippingInput}
                     onChangeText={(text) => setCity(text)}
                 />
@@ -182,6 +187,7 @@ const Checkout = (props) => {
                     value={zip}
                     keyboardType={"numeric"}
                     placeholderTextColor={fieldPlaceholderColor}
+                    selectionColor={fieldTextColor}
                     inputStyle={styles.shippingInput}
                     onChangeText={(text) => setZip(text)}
                 />
@@ -194,7 +200,7 @@ const Checkout = (props) => {
                         onValueChange={(e) => setCountry(e)}
                     >
                         {countries.map((c) => {
-                            return <Picker.Item key={c.code} label={c.name} value={c.name} />
+                            return <Picker.Item key={c.code} label={c.name} value={c.name} color={fieldTextColor} />
                         })}
                     </Picker>
                 </View>
@@ -206,6 +212,7 @@ const Checkout = (props) => {
                             style={styles.promoInput}
                             placeholder="Enter promo code"
                             placeholderTextColor={fieldPlaceholderColor}
+                            selectionColor={fieldTextColor}
                             value={promoCode}
                             autoCapitalize="characters"
                             onChangeText={(text) => {
@@ -266,7 +273,7 @@ const styles = StyleSheet.create({
     },
     shippingInput: {
         backgroundColor: 'rgba(0,0,0,0.06)',
-        color: 'rgba(0,0,0,0.85)',
+        color: 'rgba(0,0,0,0.72)',
         borderColor: 'rgba(0,0,0,0.45)',
     },
     pickerContainer: {
@@ -279,7 +286,7 @@ const styles = StyleSheet.create({
         backgroundColor: colors.white
     },
     countryPicker: {
-        color: 'rgba(0,0,0,0.85)',
+        color: 'rgba(0,0,0,0.72)',
     },
     promoSection: {
         width: '80%',
@@ -305,7 +312,7 @@ const styles = StyleSheet.create({
         borderColor: colors.light,
         paddingHorizontal: 12,
         backgroundColor: 'rgba(0,0,0,0.06)',
-        color: 'rgba(0,0,0,0.85)',
+        color: 'rgba(0,0,0,0.72)',
     },
     promoButton: {
         paddingVertical: 12,
