@@ -1,0 +1,58 @@
+{
+  "expo": {
+    "name": "Studyzie School Supplies",
+    "slug": "studyzie-school-supplies",
+    "scheme": "studyzie",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./screens/assets/icon.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./screens/assets/icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#FFFFFF"
+    },
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "package": "com.studyzie.app",
+      "versionCode": 1,
+      "googleServicesFile": "./google-services.json",
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "data": [
+            {
+              "scheme": "com.googleusercontent.apps.389416302400-kbkq1su4lo0gp35gutlrha4mq5f4mbgv"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
+        }
+      ],
+      "adaptiveIcon": {
+        "foregroundImage": "./screens/assets/adaptive-icon.png",
+        "backgroundColor": "#FFFFFF"
+      },
+      "edgeToEdgeEnabled": true
+    },
+    "web": {
+      "favicon": "./screens/assets/favicon.png"
+    },
+    "plugins": [
+      "expo-sqlite",
+      "@react-native-google-signin/google-signin",
+      "expo-web-browser",
+      "@react-native-community/datetimepicker"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "819e638e-82bf-4c60-b20f-a3a715b9f7f1"
+      }
+    }
+  }
+}

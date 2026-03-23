@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "389416302400",
+    "project_id": "studyzie-d44ca",
+    "storage_bucket": "studyzie-d44ca.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:389416302400:android:f8722b001cd3b3383aeca5",
+        "android_client_info": {
+          "package_name": "com.studyzie.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAOIZaQ7x-8Zf8XAwEq3kSd3w_iScZADvM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
