@@ -44,3 +44,5 @@ google-services.json
 # generated native folders
 /ios
 /android
+
+google-services.base64.txt
