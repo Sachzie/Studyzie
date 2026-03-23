@@ -99,6 +99,19 @@ const SingleProduct = ({ route }) => {
         return total / productReviews.length;
     }, [productReviews]);
 
+    const formatReviewDate = (value) => {
+        if (!value) return "";
+        try {
+            return new Date(value).toLocaleDateString("en-US", {
+                month: "short",
+                day: "numeric",
+                year: "numeric",
+            });
+        } catch {
+            return "";
+        }
+    };
+
     const handleAddToCart = () => {
         if (!isAuthenticated) {
             Toast.show({
@@ -208,36 +221,37 @@ const SingleProduct = ({ route }) => {
                         </View>
                     </View>
 
-                    <View style={styles.divider} />
-
-                    <View style={styles.reviewHeader}>
-                        <Text style={styles.sectionTitle}>Customer Reviews</Text>
-                        {detailsLoading ? <ActivityIndicator size="small" color={colors.primary} /> : null}
-                    </View>
-                    {productReviews.length > 0 ? (
-                        <>
-                            <View style={styles.ratingSummary}>
-                                <Text style={styles.ratingValue}>{averageRating.toFixed(1)}</Text>
-                                <View style={styles.starsRow}>
-                                    {[1, 2, 3, 4, 5].map((star) => (
-                                        <Ionicons
-                                            key={`avg-star-${star}`}
-                                            name={star <= Math.round(averageRating) ? "star" : "star-outline"}
-                                            size={16}
-                                            color="#F59E0B"
-                                        />
-                                    ))}
+                    <View style={styles.reviewsSection}>
+                        <View style={styles.reviewHeader}>
+                            <Text style={styles.reviewsTitle}>Customer Reviews</Text>
+                            {detailsLoading ? <ActivityIndicator size="small" color={colors.primary} /> : null}
+                        </View>
+                        {productReviews.length > 0 ? (
+                            <>
+                                <View style={styles.ratingSummary}>
+                                    <Text style={styles.ratingValue}>{averageRating.toFixed(1)}</Text>
+                                    <View style={styles.starsRow}>
+                                        {[1, 2, 3, 4, 5].map((star) => (
+                                            <Ionicons
+                                                key={`avg-star-${star}`}
+                                                name={star <= Math.round(averageRating) ? "star" : "star-outline"}
+                                                size={16}
+                                                color="#F59E0B"
+                                            />
+                                        ))}
+                                    </View>
+                                    <Text style={styles.ratingCount}>{productReviews.length} reviews</Text>
                                 </View>
-                                <Text style={styles.ratingCount}>({productReviews.length} reviews)</Text>
-                            </View>
-                            {productReviews.map((review, index) => (
-                                <View
-                                    key={review?._id || `${review?.user || "review"}-${index}`}
-                                    style={styles.reviewCard}
-                                >
-                                    <View style={styles.reviewTopRow}>
-                                        <Text style={styles.reviewName}>{review?.name || "Studyzie Customer"}</Text>
-                                        <View style={styles.starsRow}>
+                                {productReviews.map((review, index) => (
+                                    <View
+                                        key={review?._id || `${review?.user || "review"}-${index}`}
+                                        style={styles.reviewCard}
+                                    >
+                                        <View style={styles.reviewTopRow}>
+                                            <Text style={styles.reviewName}>{review?.name || "Studyzie Customer"}</Text>
+                                            <Text style={styles.reviewDate}>{formatReviewDate(review?.updatedAt || review?.createdAt)}</Text>
+                                        </View>
+                                        <View style={styles.reviewStars}>
                                             {[1, 2, 3, 4, 5].map((star) => (
                                                 <Ionicons
                                                     key={`review-star-${index}-${star}`}
@@ -247,18 +261,23 @@ const SingleProduct = ({ route }) => {
                                                 />
                                             ))}
                                         </View>
+                                        {review?.comment ? (
+                                            <Text style={styles.reviewComment}>{review.comment}</Text>
+                                        ) : (
+                                            <Text style={styles.reviewCommentMuted}>No written comment provided.</Text>
+                                        )}
                                     </View>
-                                    {review?.comment ? (
-                                        <Text style={styles.reviewComment}>{review.comment}</Text>
-                                    ) : null}
-                                </View>
-                            ))}
-                        </>
-                    ) : (
-                        <Text style={styles.noReviewsText}>
-                            No reviews yet from delivered orders for this product.
-                        </Text>
-                    )}
+                                ))}
+                            </>
+                        ) : (
+                            <View style={styles.emptyReviewCard}>
+                                <Ionicons name="chatbubble-ellipses-outline" size={18} color="#64748B" />
+                                <Text style={styles.noReviewsText}>
+                                    No reviews yet from delivered orders for this product.
+                                </Text>
+                            </View>
+                        )}
+                    </View>
                 </View>
             </ScrollView>
 
@@ -399,20 +418,36 @@ const styles = StyleSheet.create({
     outStock: {
         color: "#DC2626",
     },
+    reviewsSection: {
+        marginTop: 16,
+        backgroundColor: "#F8FAFC",
+        borderWidth: 1,
+        borderColor: "#E2E8F0",
+        borderRadius: 14,
+        padding: 14,
+    },
     reviewHeader: {
         flexDirection: "row",
         justifyContent: "space-between",
         alignItems: "center",
-        marginBottom: 8,
+        marginBottom: 10,
+    },
+    reviewsTitle: {
+        fontSize: 17,
+        fontWeight: "800",
+        color: "#1F2937",
     },
     ratingSummary: {
         flexDirection: "row",
         alignItems: "center",
-        marginBottom: 12,
+        marginBottom: 14,
+        paddingBottom: 10,
+        borderBottomWidth: 1,
+        borderBottomColor: "#E5E7EB",
     },
     ratingValue: {
-        fontSize: 20,
-        fontWeight: "700",
+        fontSize: 24,
+        fontWeight: "800",
         color: "#111827",
         marginRight: 8,
     },
@@ -423,36 +458,63 @@ const styles = StyleSheet.create({
     },
     ratingCount: {
         marginLeft: 8,
-        fontSize: 12,
+        fontSize: 13,
+        fontWeight: "600",
         color: "#6B7280",
     },
     reviewCard: {
         borderWidth: 1,
         borderColor: "#E5E7EB",
-        borderRadius: 10,
-        padding: 10,
+        borderRadius: 12,
+        padding: 12,
         marginBottom: 10,
-        backgroundColor: "#FAFAFA",
+        backgroundColor: "#FFFFFF",
     },
     reviewTopRow: {
         flexDirection: "row",
         justifyContent: "space-between",
         alignItems: "center",
-        marginBottom: 6,
+        marginBottom: 8,
     },
     reviewName: {
-        fontSize: 13,
-        fontWeight: "700",
+        fontSize: 14,
+        fontWeight: "800",
         color: "#374151",
+    },
+    reviewDate: {
+        fontSize: 12,
+        color: "#6B7280",
+    },
+    reviewStars: {
+        flexDirection: "row",
+        marginBottom: 8,
+        gap: 2,
     },
     reviewComment: {
         fontSize: 13,
-        lineHeight: 18,
-        color: "#4B5563",
+        lineHeight: 19,
+        color: "#334155",
+    },
+    reviewCommentMuted: {
+        fontSize: 13,
+        color: "#94A3B8",
+        fontStyle: "italic",
+    },
+    emptyReviewCard: {
+        flexDirection: "row",
+        alignItems: "center",
+        backgroundColor: "#FFFFFF",
+        borderWidth: 1,
+        borderColor: "#E5E7EB",
+        borderRadius: 12,
+        paddingVertical: 12,
+        paddingHorizontal: 10,
     },
     noReviewsText: {
         fontSize: 13,
-        color: "#6B7280",
+        color: "#64748B",
+        marginLeft: 8,
+        flex: 1,
     },
     bottomBar: {
         position: 'absolute',
