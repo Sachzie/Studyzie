@@ -1,4 +1,4 @@
-import React, { useState, useContext, useEffect, useMemo } from "react";
+import React, { useState, useContext, useEffect, useMemo, useCallback } from "react";
 import { Image, View, StyleSheet, Text, ScrollView, TouchableOpacity, Dimensions, ActivityIndicator } from "react-native";
 import { Surface } from "react-native-paper";
 import { useDispatch } from 'react-redux';
@@ -6,7 +6,7 @@ import { addToCart } from "../../backend/Redux/Actions/cartActions";
 import Toast from "react-native-toast-message";
 import { Ionicons } from "@expo/vector-icons";
 import AuthGlobal from "../../backend/Context/Store/AuthGlobal";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import axios from "axios";
 import baseURL from "../assets/common/baseurl";
 import colors from "../assets/common/colors";
@@ -39,40 +39,43 @@ const SingleProduct = ({ route }) => {
     const [detailsLoading, setDetailsLoading] = useState(false);
 
     useEffect(() => {
-        let mounted = true;
-
-        const hydrateProductDetails = async () => {
-            const productId = item?._id || item?.id;
-            if (!productId || String(productId).startsWith("local-")) {
-                return;
-            }
-
-            setDetailsLoading(true);
-            try {
-                const response = await axios.get(`${baseURL}products/${productId}`);
-                const incoming = response?.data || {};
-                if (!mounted) return;
-                setProduct((prev) => ({
-                    ...prev,
-                    ...incoming,
-                    imageSource: prev?.imageSource || incoming?.imageSource || null,
-                }));
-            } catch (error) {
-                // Keep fallback item data if detail fetch fails.
-            } finally {
-                if (mounted) {
-                    setDetailsLoading(false);
-                }
-            }
-        };
-
         setProduct(item || {});
-        hydrateProductDetails();
-
-        return () => {
-            mounted = false;
-        };
     }, [item]);
+
+    const loadLatestProduct = useCallback(async (isActiveRef) => {
+        const productId = item?._id || item?.id;
+        if (!productId || String(productId).startsWith("local-")) {
+            return;
+        }
+
+        setDetailsLoading(true);
+        try {
+            const response = await axios.get(`${baseURL}products/${productId}`);
+            const incoming = response?.data || {};
+            if (!isActiveRef.current) return;
+            setProduct((prev) => ({
+                ...prev,
+                ...incoming,
+                imageSource: prev?.imageSource || incoming?.imageSource || null,
+            }));
+        } catch (error) {
+            // Keep fallback item data if detail fetch fails.
+        } finally {
+            if (isActiveRef.current) {
+                setDetailsLoading(false);
+            }
+        }
+    }, [item?._id, item?.id]);
+
+    useFocusEffect(
+        useCallback(() => {
+            const isActiveRef = { current: true };
+            loadLatestProduct(isActiveRef);
+            return () => {
+                isActiveRef.current = false;
+            };
+        }, [loadLatestProduct])
+    );
 
     const formatPeso = (value) => `\u20B1${Number(value || 0).toLocaleString("en-PH", {
         minimumFractionDigits: 2,

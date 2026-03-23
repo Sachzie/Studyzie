@@ -115,72 +115,6 @@ const recalcProductRating = (product) => {
   product.rating = product.numReviews ? total / product.numReviews : 0;
 };
 
-const filterReviewsToDeliveredPurchasers = async (product) => {
-  if (!product || !Array.isArray(product.reviews) || product.reviews.length === 0) {
-    return product;
-  }
-
-  const reviewerIds = [...new Set(
-    product.reviews
-      .map((review) => (review?.user ? String(review.user) : ""))
-      .filter(Boolean)
-  )];
-
-  if (!reviewerIds.length) {
-    product.reviews = [];
-    recalcProductRating(product);
-    return product;
-  }
-
-  const deliveredOrders = await Order.find({
-    status: "1",
-    user: { $in: reviewerIds },
-  }).select("user orderItems");
-
-  if (!deliveredOrders.length) {
-    product.reviews = [];
-    recalcProductRating(product);
-    return product;
-  }
-
-  const orderItemIds = deliveredOrders.flatMap((order) => order.orderItems || []);
-  if (!orderItemIds.length) {
-    product.reviews = [];
-    recalcProductRating(product);
-    return product;
-  }
-
-  const matchedOrderItems = await OrderItem.find({
-    _id: { $in: orderItemIds },
-    product: product._id,
-  }).select("_id");
-
-  const matchedOrderItemSet = new Set(
-    matchedOrderItems.map((item) => String(item._id))
-  );
-
-  const eligibleUsers = new Set();
-  deliveredOrders.forEach((order) => {
-    const hasDeliveredMatch = (order.orderItems || []).some((orderItemId) =>
-      matchedOrderItemSet.has(String(orderItemId))
-    );
-    if (hasDeliveredMatch && order.user) {
-      eligibleUsers.add(String(order.user));
-    }
-  });
-
-  const filteredReviews = product.reviews.filter((review) =>
-    eligibleUsers.has(String(review.user))
-  );
-
-  if (filteredReviews.length !== product.reviews.length) {
-    product.reviews = filteredReviews;
-    recalcProductRating(product);
-  }
-
-  return product;
-};
-
 router.get("/", async (req, res) => {
   try {
     const products = await Product.find()
@@ -199,7 +133,6 @@ router.get("/:id", async (req, res) => {
     if (!product) {
       return res.status(404).json({ message: "Product not found" });
     }
-    await filterReviewsToDeliveredPurchasers(product);
     return res.json(product);
   } catch (error) {
     return res.status(400).json({ message: "Invalid product id" });
