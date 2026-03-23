@@ -1,19 +1,20 @@
-import React, { useCallback, useContext, useState } from "react";
+import React, { useCallback, useContext, useState, useRef, useEffect } from "react";
 import {
     View,
     Text,
     StyleSheet,
-    FlatList,
     TouchableOpacity,
     Image,
     TextInput,
     ActivityIndicator,
     Alert,
+    Modal,
 } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { useDispatch, useSelector } from "react-redux";
 import Toast from "react-native-toast-message";
 import { Ionicons } from "@expo/vector-icons";
+import { SwipeListView } from "react-native-swipe-list-view";
 
 import AuthGlobal from "../../backend/Context/Store/AuthGlobal";
 import baseURL from "../assets/common/baseurl";
@@ -120,11 +121,22 @@ const Reviews = ({ navigation }) => {
     const { reviewables: products, loading, savingId } = reviewsState;
     const [expandedId, setExpandedId] = useState("");
     const [drafts, setDrafts] = useState({});
+    const [deletedModalVisible, setDeletedModalVisible] = useState(false);
+    const [deletedProductName, setDeletedProductName] = useState("");
+    const deleteModalTimerRef = useRef(null);
 
     const userId = context?.stateUser?.user?.userId
         || context?.stateUser?.user?.id
         || context?.stateUser?.user?.sub
         || "";
+
+    useEffect(() => {
+        return () => {
+            if (deleteModalTimerRef.current) {
+                clearTimeout(deleteModalTimerRef.current);
+            }
+        };
+    }, []);
 
     useFocusEffect(
         useCallback(() => {
@@ -229,6 +241,14 @@ const Reviews = ({ navigation }) => {
                                 text1: "Review deleted",
                                 text2: "Your review has been removed.",
                             });
+                            if (deleteModalTimerRef.current) {
+                                clearTimeout(deleteModalTimerRef.current);
+                            }
+                            setDeletedProductName(product?.name || "Product");
+                            setDeletedModalVisible(true);
+                            deleteModalTimerRef.current = setTimeout(() => {
+                                setDeletedModalVisible(false);
+                            }, 1600);
                             setExpandedId("");
                             dispatch(fetchReviewables(userId));
                         } catch (error) {
@@ -314,33 +334,51 @@ const Reviews = ({ navigation }) => {
                             onChangeText={(text) => updateDraft(productId, { comment: text })}
                             multiline
                         />
-                        <View style={styles.reviewActionsRow}>
-                            <TouchableOpacity
-                                style={styles.submitButton}
-                                onPress={() => submitReview(item, review)}
-                                disabled={savingId === productId}
-                            >
-                                {savingId === productId ? (
-                                    <ActivityIndicator size="small" color={colors.white} />
-                                ) : (
-                                    <Text style={styles.submitText}>
-                                        {review ? "Save Changes" : "Submit Review"}
-                                    </Text>
-                                )}
-                            </TouchableOpacity>
-                            {review ? (
-                                <TouchableOpacity
-                                    style={styles.deleteButton}
-                                    onPress={() => deleteReview(item)}
-                                    disabled={savingId === productId}
-                                >
-                                    <Ionicons name="trash-outline" size={16} color={colors.error} />
-                                    <Text style={styles.deleteText}>Delete Review</Text>
-                                </TouchableOpacity>
-                            ) : null}
-                        </View>
+                        <TouchableOpacity
+                            style={styles.submitButton}
+                            onPress={() => submitReview(item, review)}
+                            disabled={savingId === productId}
+                        >
+                            {savingId === productId ? (
+                                <ActivityIndicator size="small" color={colors.white} />
+                            ) : (
+                                <Text style={styles.submitText}>
+                                    {review ? "Save Changes" : "Submit Review"}
+                                </Text>
+                            )}
+                        </TouchableOpacity>
+                        {review ? (
+                            <Text style={styles.swipeHint}>
+                                Swipe left on this card to delete your review
+                            </Text>
+                        ) : null}
                     </View>
                 ) : null}
+            </View>
+        );
+    };
+
+    const renderHiddenItem = ({ item }) => {
+        const productId = getProductId(item);
+        const review = findUserReview(item?.reviews, userId);
+        const isBusy = savingId === productId;
+
+        return (
+            <View style={styles.hiddenRow}>
+                {review ? (
+                    <TouchableOpacity
+                        style={[styles.hiddenDeleteButton, isBusy && styles.hiddenDeleteButtonDisabled]}
+                        onPress={() => deleteReview(item)}
+                        disabled={isBusy}
+                    >
+                        <Ionicons name="trash" size={18} color={colors.white} />
+                        <Text style={styles.hiddenDeleteText}>Delete</Text>
+                    </TouchableOpacity>
+                ) : (
+                    <View style={styles.hiddenDisabledBadge}>
+                        <Text style={styles.hiddenDisabledText}>No Review</Text>
+                    </View>
+                )}
             </View>
         );
     };
@@ -358,10 +396,16 @@ const Reviews = ({ navigation }) => {
                     <Text style={styles.loadingText}>Loading your purchases...</Text>
                 </View>
             ) : (
-                <FlatList
+                <SwipeListView
                     data={products}
                     keyExtractor={(item, index) => String(getProductId(item) || index)}
                     renderItem={renderItem}
+                    renderHiddenItem={renderHiddenItem}
+                    rightOpenValue={-104}
+                    disableRightSwipe
+                    closeOnRowOpen
+                    closeOnRowPress
+                    closeOnRowBeginSwipe
                     contentContainerStyle={styles.listContent}
                     ListEmptyComponent={
                         <View style={styles.center}>
@@ -371,6 +415,17 @@ const Reviews = ({ navigation }) => {
                     }
                 />
             )}
+            <Modal transparent visible={deletedModalVisible} animationType="fade">
+                <View style={styles.deleteModalOverlay}>
+                    <View style={styles.deleteModalCard}>
+                        <Ionicons name="checkmark-circle" size={40} color={colors.success} />
+                        <Text style={styles.deleteModalTitle}>Review Deleted</Text>
+                        <Text style={styles.deleteModalText}>
+                            Your review for {deletedProductName} has been removed.
+                        </Text>
+                    </View>
+                </View>
+            </Modal>
         </View>
     );
 };
@@ -527,32 +582,89 @@ const styles = StyleSheet.create({
         backgroundColor: colors.primary,
         paddingVertical: 10,
     },
-    reviewActionsRow: {
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 8,
-    },
     submitText: {
         fontSize: 13,
         fontWeight: "700",
         color: colors.white,
     },
-    deleteButton: {
-        flexDirection: "row",
+    swipeHint: {
+        marginTop: 8,
+        fontSize: 11,
+        color: colors.textLight,
+        fontWeight: "600",
+    },
+    hiddenRow: {
+        flex: 1,
+        marginBottom: 14,
+        borderRadius: 18,
+        alignItems: "flex-end",
+        justifyContent: "center",
+        paddingRight: 8,
+    },
+    hiddenDeleteButton: {
+        width: 96,
+        height: "88%",
+        borderRadius: 16,
+        backgroundColor: colors.error,
         alignItems: "center",
         justifyContent: "center",
-        paddingHorizontal: 12,
-        paddingVertical: 10,
-        borderRadius: 12,
-        borderWidth: 1,
-        borderColor: colors.error,
-        backgroundColor: "#FFF5F5",
     },
-    deleteText: {
-        marginLeft: 6,
+    hiddenDeleteButtonDisabled: {
+        opacity: 0.6,
+    },
+    hiddenDeleteText: {
+        marginTop: 4,
+        color: colors.white,
         fontSize: 12,
         fontWeight: "700",
-        color: colors.error,
+    },
+    hiddenDisabledBadge: {
+        width: 96,
+        height: "88%",
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: colors.light,
+        backgroundColor: colors.gray,
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    hiddenDisabledText: {
+        fontSize: 11,
+        fontWeight: "700",
+        color: colors.textLight,
+    },
+    deleteModalOverlay: {
+        flex: 1,
+        backgroundColor: "rgba(15, 23, 42, 0.35)",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: 24,
+    },
+    deleteModalCard: {
+        width: "100%",
+        borderRadius: 16,
+        backgroundColor: colors.white,
+        paddingVertical: 22,
+        paddingHorizontal: 18,
+        alignItems: "center",
+        shadowColor: colors.black,
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.15,
+        shadowRadius: 16,
+        elevation: 8,
+    },
+    deleteModalTitle: {
+        marginTop: 8,
+        fontSize: 18,
+        fontWeight: "800",
+        color: colors.text,
+    },
+    deleteModalText: {
+        marginTop: 6,
+        fontSize: 13,
+        lineHeight: 18,
+        color: colors.textLight,
+        textAlign: "center",
     },
     center: {
         alignItems: "center",
