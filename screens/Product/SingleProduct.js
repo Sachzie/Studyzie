@@ -112,6 +112,13 @@ const SingleProduct = ({ route }) => {
         }
     };
 
+    const getInitials = (name) => {
+        const parts = (name || "Studyzie Customer").trim().split(/\s+/).filter(Boolean);
+        if (!parts.length) return "SC";
+        if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+        return `${parts[0][0] || ""}${parts[1][0] || ""}`.toUpperCase();
+    };
+
     const handleAddToCart = () => {
         if (!isAuthenticated) {
             Toast.show({
@@ -242,13 +249,26 @@ const SingleProduct = ({ route }) => {
                                     </View>
                                     <Text style={styles.ratingCount}>{productReviews.length} reviews</Text>
                                 </View>
-                                {productReviews.map((review, index) => (
-                                    <View
-                                        key={review?._id || `${review?.user || "review"}-${index}`}
-                                        style={styles.reviewCard}
-                                    >
+                                {productReviews.map((review, index) => {
+                                    const reviewerName = review?.name || review?.user?.name || "Studyzie Customer";
+                                    const avatarRaw = review?.image || review?.user?.image || "";
+                                    const avatarUri = resolveImageUri(avatarRaw);
+                                    return (
+                                        <View
+                                            key={review?._id || `${review?.user || "review"}-${index}`}
+                                            style={styles.reviewCard}
+                                        >
                                         <View style={styles.reviewTopRow}>
-                                            <Text style={styles.reviewName}>{review?.name || "Studyzie Customer"}</Text>
+                                            <View style={styles.reviewIdentity}>
+                                                {avatarUri ? (
+                                                    <Image source={{ uri: avatarUri }} style={styles.reviewAvatar} />
+                                                ) : (
+                                                    <View style={styles.reviewAvatarFallback}>
+                                                        <Text style={styles.reviewInitials}>{getInitials(reviewerName)}</Text>
+                                                    </View>
+                                                )}
+                                                <Text style={styles.reviewName}>{reviewerName}</Text>
+                                            </View>
                                             <Text style={styles.reviewDate}>{formatReviewDate(review?.updatedAt || review?.createdAt)}</Text>
                                         </View>
                                         <View style={styles.reviewStars}>
@@ -267,7 +287,8 @@ const SingleProduct = ({ route }) => {
                                             <Text style={styles.reviewCommentMuted}>No written comment provided.</Text>
                                         )}
                                     </View>
-                                ))}
+                                    );
+                                })}
                             </>
                         ) : (
                             <View style={styles.emptyReviewCard}>
@@ -475,6 +496,33 @@ const styles = StyleSheet.create({
         justifyContent: "space-between",
         alignItems: "center",
         marginBottom: 8,
+    },
+    reviewIdentity: {
+        flexDirection: "row",
+        alignItems: "center",
+        flex: 1,
+        marginRight: 8,
+    },
+    reviewAvatar: {
+        width: 30,
+        height: 30,
+        borderRadius: 15,
+        marginRight: 8,
+        backgroundColor: "#E2E8F0",
+    },
+    reviewAvatarFallback: {
+        width: 30,
+        height: 30,
+        borderRadius: 15,
+        marginRight: 8,
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: "#D1D5DB",
+    },
+    reviewInitials: {
+        fontSize: 11,
+        fontWeight: "800",
+        color: "#334155",
     },
     reviewName: {
         fontSize: 14,

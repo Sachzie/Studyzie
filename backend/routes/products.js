@@ -129,7 +129,9 @@ router.get("/", async (req, res) => {
 
 router.get("/:id", async (req, res) => {
   try {
-    const product = await Product.findById(req.params.id).populate("category");
+    const product = await Product.findById(req.params.id)
+      .populate("category")
+      .populate({ path: "reviews.user", select: "name image" });
     if (!product) {
       return res.status(404).json({ message: "Product not found" });
     }
@@ -281,12 +283,13 @@ router.post("/:id/reviews", requireAuth, async (req, res) => {
       return res.status(400).json({ message: "Rating must be between 1 and 5." });
     }
 
-    const reviewer = await User.findById(userId).select("name");
+    const reviewer = await User.findById(userId).select("name image");
     const review = {
       user: userId,
       name: reviewer?.name || "Studyzie User",
       rating,
       comment: (req.body.comment || "").toString().trim(),
+      image: reviewer?.image || "",
     };
 
     product.reviews.push(review);
@@ -328,6 +331,13 @@ router.put("/:id/reviews", requireAuth, async (req, res) => {
 
     review.rating = rating;
     review.comment = (req.body.comment || "").toString().trim();
+    if (!review.image || !review.name) {
+      const reviewer = await User.findById(userId).select("name image");
+      if (reviewer?.name) {
+        review.name = reviewer.name;
+      }
+      review.image = reviewer?.image || review.image || "";
+    }
     review.updatedAt = new Date();
     recalcProductRating(product);
     await product.save();
