@@ -17,8 +17,17 @@ const FALLBACK_IMAGE = "https://cdn.pixabay.com/photo/2012/04/01/17/29/box-23649
 
 const resolveImageUri = (rawUri) => {
     if (!rawUri) return "";
+    if (rawUri.startsWith("data:image")) return rawUri;
     if (/^https?:\/\//i.test(rawUri)) {
-        return rawUri;
+        try {
+            const url = new URL(rawUri);
+            if (url.hostname === "localhost" || url.hostname === "127.0.0.1") {
+                return `${API_ORIGIN}${url.pathname}`;
+            }
+            return rawUri;
+        } catch (error) {
+            return rawUri;
+        }
     }
 
     if (rawUri.startsWith("/")) {

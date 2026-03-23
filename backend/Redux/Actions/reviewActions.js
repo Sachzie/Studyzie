@@ -63,3 +63,18 @@ export const submitReview = (productId, payload, token, isUpdate = false) => asy
         throw error;
     }
 };
+
+export const deleteReview = (productId, token) => async (dispatch) => {
+    if (!productId) return;
+    dispatch({ type: REVIEW_SUBMIT_REQUEST, payload: { productId } });
+    try {
+        const headers = { Authorization: `Bearer ${token}` };
+        await axios.delete(`${baseURL}products/${productId}/reviews`, { headers });
+        dispatch({ type: REVIEW_SUBMIT_SUCCESS, payload: { productId } });
+        return true;
+    } catch (error) {
+        const message = error?.response?.data?.message || error.message || "Failed to delete review";
+        dispatch({ type: REVIEW_SUBMIT_FAIL, payload: message });
+        throw error;
+    }
+};

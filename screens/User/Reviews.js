@@ -8,6 +8,7 @@ import {
     Image,
     TextInput,
     ActivityIndicator,
+    Alert,
 } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { useDispatch, useSelector } from "react-redux";
@@ -17,7 +18,11 @@ import { Ionicons } from "@expo/vector-icons";
 import AuthGlobal from "../../backend/Context/Store/AuthGlobal";
 import baseURL from "../assets/common/baseurl";
 import colors from "../assets/common/colors";
-import { fetchReviewables, submitReview as submitReviewAction } from "../../backend/Redux/Actions/reviewActions";
+import {
+    fetchReviewables,
+    submitReview as submitReviewAction,
+    deleteReview as deleteReviewAction,
+} from "../../backend/Redux/Actions/reviewActions";
 import { getToken } from "../../backend/Context/Store/tokenStorage";
 import a4Img from "../Picures/a4.jpg";
 import ballpenImg from "../Picures/ballpen.jpg";
@@ -192,6 +197,54 @@ const Reviews = ({ navigation }) => {
         }
     };
 
+    const deleteReview = async (product) => {
+        const productId = getProductId(product);
+        if (!productId) return;
+
+        Alert.alert(
+            "Delete Review",
+            "Are you sure you want to remove your review for this product?",
+            [
+                { text: "Cancel", style: "cancel" },
+                {
+                    text: "Delete",
+                    style: "destructive",
+                    onPress: async () => {
+                        try {
+                            const token = await getToken();
+                            if (!token) {
+                                Toast.show({
+                                    topOffset: 60,
+                                    type: "error",
+                                    text1: "Please login",
+                                    text2: "You need to login to delete a review.",
+                                });
+                                return;
+                            }
+
+                            await dispatch(deleteReviewAction(productId, token));
+                            Toast.show({
+                                topOffset: 60,
+                                type: "success",
+                                text1: "Review deleted",
+                                text2: "Your review has been removed.",
+                            });
+                            setExpandedId("");
+                            dispatch(fetchReviewables(userId));
+                        } catch (error) {
+                            Toast.show({
+                                topOffset: 60,
+                                type: "error",
+                                text1: "Delete failed",
+                                text2: error?.response?.data?.message || "Please try again.",
+                            });
+                        }
+                    },
+                },
+            ]
+        );
+    };
+
     const renderStars = (value, onChange) => (
         <View style={styles.starRow}>
             {[1, 2, 3, 4, 5].map((star) => (
@@ -261,19 +314,31 @@ const Reviews = ({ navigation }) => {
                             onChangeText={(text) => updateDraft(productId, { comment: text })}
                             multiline
                         />
-                        <TouchableOpacity
-                            style={styles.submitButton}
-                            onPress={() => submitReview(item, review)}
-                            disabled={savingId === productId}
-                        >
-                            {savingId === productId ? (
-                                <ActivityIndicator size="small" color={colors.white} />
-                            ) : (
-                                <Text style={styles.submitText}>
-                                    {review ? "Save Changes" : "Submit Review"}
-                                </Text>
-                            )}
-                        </TouchableOpacity>
+                        <View style={styles.reviewActionsRow}>
+                            <TouchableOpacity
+                                style={styles.submitButton}
+                                onPress={() => submitReview(item, review)}
+                                disabled={savingId === productId}
+                            >
+                                {savingId === productId ? (
+                                    <ActivityIndicator size="small" color={colors.white} />
+                                ) : (
+                                    <Text style={styles.submitText}>
+                                        {review ? "Save Changes" : "Submit Review"}
+                                    </Text>
+                                )}
+                            </TouchableOpacity>
+                            {review ? (
+                                <TouchableOpacity
+                                    style={styles.deleteButton}
+                                    onPress={() => deleteReview(item)}
+                                    disabled={savingId === productId}
+                                >
+                                    <Ionicons name="trash-outline" size={16} color={colors.error} />
+                                    <Text style={styles.deleteText}>Delete Review</Text>
+                                </TouchableOpacity>
+                            ) : null}
+                        </View>
                     </View>
                 ) : null}
             </View>
@@ -455,16 +520,39 @@ const styles = StyleSheet.create({
         marginBottom: 12,
     },
     submitButton: {
+        flex: 1,
         alignItems: "center",
         justifyContent: "center",
         borderRadius: 12,
         backgroundColor: colors.primary,
         paddingVertical: 10,
     },
+    reviewActionsRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 8,
+    },
     submitText: {
         fontSize: 13,
         fontWeight: "700",
         color: colors.white,
+    },
+    deleteButton: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        paddingHorizontal: 12,
+        paddingVertical: 10,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: colors.error,
+        backgroundColor: "#FFF5F5",
+    },
+    deleteText: {
+        marginLeft: 6,
+        fontSize: 12,
+        fontWeight: "700",
+        color: colors.error,
     },
     center: {
         alignItems: "center",

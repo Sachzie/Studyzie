@@ -135,6 +135,47 @@ router.get("/:id", async (req, res) => {
     if (!product) {
       return res.status(404).json({ message: "Product not found" });
     }
+
+    // Backfill review profile data for older reviews that were saved
+    // before reviewer image snapshots were stored.
+    const reviewerIds = (product.reviews || [])
+      .map((review) => {
+        const rawUser = review?.user;
+        if (!rawUser) return "";
+        if (typeof rawUser === "string") return rawUser;
+        if (rawUser?._id) return String(rawUser._id);
+        return String(rawUser);
+      })
+      .filter(Boolean);
+
+    let reviewerMap = new Map();
+    if (reviewerIds.length > 0) {
+      const uniqueReviewerIds = [...new Set(reviewerIds)];
+      const reviewers = await User.find({ _id: { $in: uniqueReviewerIds } }).select("name image");
+      reviewerMap = new Map(
+        reviewers.map((reviewer) => [String(reviewer._id), reviewer])
+      );
+    }
+
+    product.reviews = (product.reviews || []).map((review) => {
+      const rawUser = review?.user;
+      const reviewerId = typeof rawUser === "string"
+        ? rawUser
+        : rawUser?._id
+          ? String(rawUser._id)
+          : rawUser
+            ? String(rawUser)
+            : "";
+      const reviewer = reviewerMap.get(reviewerId);
+      if (!review.name && reviewer?.name) {
+        review.name = reviewer.name;
+      }
+      if (!review.image && reviewer?.image) {
+        review.image = reviewer.image;
+      }
+      return review;
+    });
+
     return res.json(product);
   } catch (error) {
     return res.status(400).json({ message: "Invalid product id" });
@@ -345,6 +386,40 @@ router.put("/:id/reviews", requireAuth, async (req, res) => {
     return res.json(product);
   } catch (error) {
     return res.status(500).json({ message: error.message || "Failed to update review" });
+  }
+});
+
+router.delete("/:id/reviews", requireAuth, async (req, res) => {
+  try {
+    const product = await Product.findById(req.params.id);
+    if (!product) {
+      return res.status(404).json({ message: "Product not found" });
+    }
+
+    const userId = getUserIdFromToken(req);
+    if (!userId) {
+      return res.status(401).json({ message: "Invalid user token" });
+    }
+
+    const reviewIndex = product.reviews.findIndex(
+      (review) => String(review?.user) === String(userId)
+    );
+
+    if (reviewIndex < 0) {
+      return res.status(404).json({ message: "Review not found." });
+    }
+
+    product.reviews.splice(reviewIndex, 1);
+    recalcProductRating(product);
+    await product.save();
+
+    return res.json({
+      success: true,
+      message: "Review deleted successfully.",
+      product,
+    });
+  } catch (error) {
+    return res.status(500).json({ message: error.message || "Failed to delete review" });
   }
 });
 
