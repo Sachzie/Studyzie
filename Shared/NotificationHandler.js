@@ -25,6 +25,43 @@ const NotificationHandler = () => {
   const responseListener = useRef();
   const handledResponseId = useRef(null);
 
+  const getPromotionFromPayload = useCallback((data) => {
+    if (!data) return null;
+
+    // Backward compatibility: old payload used a nested promotion object.
+    if (data?.promotion && typeof data.promotion === "object") {
+      return data.promotion;
+    }
+
+    if (typeof data?.promotion === "string") {
+      try {
+        const parsed = JSON.parse(data.promotion);
+        if (parsed && typeof parsed === "object") {
+          return parsed;
+        }
+      } catch (error) {
+        // Ignore malformed string payloads and try flat fields below.
+      }
+    }
+
+    // New flat payload (mirrors order-status notification style).
+    if (data?.discountCode && Number(data?.discountAmount) > 0) {
+      return {
+        id: data?.promotionId || "",
+        title: data?.title || "Special Promotion",
+        message: data?.message || "",
+        discountCode: String(data.discountCode).toUpperCase(),
+        discountAmount: Number(data.discountAmount) || 0,
+        startsAt: data?.startsAt || null,
+        endsAt: data?.endsAt || null,
+        maxRedemptions: Number(data?.maxRedemptions) || null,
+        maxRedemptionsPerUser: Number(data?.maxRedemptionsPerUser) || null,
+      };
+    }
+
+    return null;
+  }, []);
+
   const handleNotificationResponse = useCallback(
     (response) => {
       const request = response?.notification?.request;
@@ -44,17 +81,18 @@ const NotificationHandler = () => {
       } else if (data?.screen === 'Orders') {
         navigation.navigate('AdminTabs', { screen: 'Orders' });
       } else if (data?.screen === 'PromotionDetail') {
-        if (data?.promotion?.discountCode && data?.promotion?.discountAmount) {
-          setPromotion(data.promotion);
-          DeviceEventEmitter.emit("promotion:update", data.promotion);
-        } else if (data?.promotion === null) {
+        const promotionPayload = getPromotionFromPayload(data);
+        if (promotionPayload?.discountCode && promotionPayload?.discountAmount) {
+          setPromotion(promotionPayload);
+          DeviceEventEmitter.emit("promotion:update", promotionPayload);
+        } else if (data?.promotion === null || data?.promotionActive === false || data?.promotionActive === "false") {
           clearPromotion();
           DeviceEventEmitter.emit("promotion:update", null);
         }
-        navigation.navigate('PromotionDetail', { promotion: data?.promotion });
+        navigation.navigate('PromotionDetail', { promotion: promotionPayload });
       }
     },
-    [navigation]
+    [getPromotionFromPayload, navigation]
   );
 
   useEffect(() => {
@@ -73,12 +111,13 @@ const NotificationHandler = () => {
 
     notificationListener.current = Notifications.addNotificationReceivedListener(notification => {
       console.log('???? Notification Received:', notification.request.content.title);
-      const promo = notification.request?.content?.data?.promotion;
+      const data = notification.request?.content?.data;
+      const promo = getPromotionFromPayload(data);
       if (promo?.discountCode && promo?.discountAmount) {
         setPromotion(promo);
         DeviceEventEmitter.emit("promotion:update", promo);
       }
-      if (promo === null) {
+      if (data?.promotion === null || data?.promotionActive === false || data?.promotionActive === "false") {
         clearPromotion();
         DeviceEventEmitter.emit("promotion:update", null);
       }
@@ -114,7 +153,7 @@ const NotificationHandler = () => {
       removeSubscription(notificationListener.current);
       removeSubscription(responseListener.current);
     };
-  }, [context.stateUser.isAuthenticated, handleNotificationResponse]);
+  }, [context.stateUser.isAuthenticated, getPromotionFromPayload, handleNotificationResponse]);
 
   const savePushTokenToBackend = async (pushToken) => {
     const userId = context.stateUser.user.userId || context.stateUser.user.id || context.stateUser.user.sub;

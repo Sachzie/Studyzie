@@ -556,18 +556,20 @@ router.post('/broadcast-promotion', async (req, res) => {
       });
     }
 
+    // Keep payload flat (same proven approach as order-status push payload)
+    // while still supporting detailed promo rendering on the client.
     const notificationPayload = {
-      screen: hasValidPromotion ? 'PromotionDetail' : 'Home',
-      promotion: hasValidPromotion ? {
-        title,
-        message,
-        discountCode: normalizedCode,
-        discountAmount: normalizedAmount,
-        startsAt: startsAt || null,
-        endsAt: endsAt || null,
-        maxRedemptions: maxRedemptions || null,
-        maxRedemptionsPerUser: maxRedemptionsPerUser || null,
-      } : null,
+      screen: 'PromotionDetail',
+      promotionActive: hasValidPromotion,
+      promotionId: savedPromotion?._id ? String(savedPromotion._id) : "",
+      title,
+      message,
+      discountCode: normalizedCode || "",
+      discountAmount: normalizedAmount || 0,
+      startsAt: startsAt ? startsAt.toISOString() : "",
+      endsAt: endsAt ? endsAt.toISOString() : "",
+      maxRedemptions: maxRedemptions || 0,
+      maxRedemptionsPerUser: maxRedemptionsPerUser || 0,
       timestamp: new Date().toISOString(),
     };
 
