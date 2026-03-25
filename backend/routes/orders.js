@@ -1,4 +1,4 @@
-const Order = require('../models/Order');
+﻿const Order = require('../models/Order');
 const OrderItem = require('../models/OrderItem');
 const User = require('../models/User');
 const Promotion = require('../models/Promotion');
@@ -6,6 +6,7 @@ const Product = require('../models/Product');
 const express = require('express');
 const router = express.Router();
 const { sendPushNotification } = require('../utils/pushNotifications');
+const { requireAdmin } = require('../middleware/auth');
 
 const statusLabels = {
     "0": "Cancelled",
@@ -192,7 +193,7 @@ router.post('/', async (req,res)=>{
     }
 })
 
-router.put('/:id',async (req, res)=> {
+router.put('/:id', requireAdmin, async (req, res)=> {
     try {
         const order = await Order.findByIdAndUpdate(
             req.params.id,
@@ -205,22 +206,38 @@ router.put('/:id',async (req, res)=> {
         if(!order)
             return res.status(400).send('the order cannot be update!')
 
-        // Send remote push notification if user has a push token
+        const statusName = statusLabels[req.body.status] || "Updated";
+        const orderIdShort = order.id.slice(-6);
+
+        // Notify the purchasing user.
         if (order.user && order.user.pushToken) {
-            const statusName = statusLabels[req.body.status] || "Updated";
-            const orderIdShort = order.id.slice(-6);
-            
             await sendPushNotification(
                 order.user.pushToken,
-                "📦 Order Status Updated!",
+                "Order Status Updated",
                 `Your order #${orderIdShort} is now ${statusName.toUpperCase()}. Tap to view details.`,
                 { 
                     screen: 'My Orders', 
                     orderId: order.id 
                 }
-            ).catch(err => console.log("Failed to send remote notification:", err.message));
+            ).catch(err => console.log("Failed to send customer notification:", err.message));
         }
 
+        // Notify the logged-in admin who changed the status (if different user).
+        const adminUserId = req.user?.userId;
+        if (adminUserId && (!order.user || String(order.user._id) !== String(adminUserId))) {
+            const adminUser = await User.findById(adminUserId).select('pushToken name');
+            if (adminUser?.pushToken) {
+                await sendPushNotification(
+                    adminUser.pushToken,
+                    "Order Status Changed",
+                    `Order #${orderIdShort} marked as ${statusName.toUpperCase()}.`,
+                    { 
+                        screen: 'Orders',
+                        orderId: order.id 
+                    }
+                ).catch(err => console.log("Failed to send admin notification:", err.message));
+            }
+        }
         res.send(order);
     } catch (error) {
         return res.status(500).json({ success: false, error: error.message });
@@ -280,3 +297,6 @@ router.get(`/get/userorders/:userid`, async (req, res) =>{
 })
 
 module.exports = router;
+
+
+

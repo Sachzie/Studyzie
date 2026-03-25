@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from "react";
+﻿import React, { useCallback, useMemo, useState } from "react";
 import {
     View,
     Text,
@@ -16,7 +16,6 @@ import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
 import { useDispatch, useSelector } from "react-redux";
 import { BarChart } from "react-native-chart-kit";
-import * as Notifications from 'expo-notifications';
 
 import baseURL from "../assets/common/baseurl";
 import { fetchOrders, updateOrderStatus as updateOrderStatusAction } from "../../backend/Redux/Actions/orderActions";
@@ -234,7 +233,6 @@ const Orders = () => {
     };
 
     const getOrderId = (order) => order?.id || order?._id;
-
     const handleUpdateStatus = async (nextStatus) => {
         if (!selectedOrder) return;
         const orderId = getOrderId(selectedOrder);
@@ -243,35 +241,12 @@ const Orders = () => {
         try {
             const token = await getToken();
             await dispatch(updateOrderStatusAction(orderId, nextStatus, token));
-            
-            // Send Push Notification after successful update
-            const statusLabel = statusOptions.find(o => o.value === nextStatus)?.label || "Updated";
-            await sendLocalNotification(selectedOrder, statusLabel);
-            
             closeStatusModal();
         } catch (error) {
             // Fallback: keep local state unchanged if update fails
             closeStatusModal();
         }
     };
-
-    const sendLocalNotification = async (order, status) => {
-        const orderId = getOrderId(order);
-        await Notifications.scheduleNotificationAsync({
-            content: {
-                title: "📦 Order Status Updated!",
-                body: `Order #${orderId.slice(-6)} is now ${status.toUpperCase()}. Tap to view details.`,
-                data: { 
-                    screen: 'My Orders', 
-                    orderId: orderId 
-                },
-                sound: true,
-                priority: Notifications.AndroidImportance.MAX,
-            },
-            trigger: null, // Send immediately
-        });
-    };
-
     return (
         <View style={styles.container}>
             <View style={styles.header}>
@@ -670,3 +645,5 @@ const styles = StyleSheet.create({
 });
 
 export default Orders;
+
+
