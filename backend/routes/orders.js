@@ -1,6 +1,5 @@
 ﻿const Order = require('../models/Order');
 const OrderItem = require('../models/OrderItem');
-const User = require('../models/User');
 const Promotion = require('../models/Promotion');
 const Product = require('../models/Product');
 const express = require('express');
@@ -222,22 +221,6 @@ router.put('/:id', requireAdmin, async (req, res)=> {
             ).catch(err => console.log("Failed to send customer notification:", err.message));
         }
 
-        // Notify the logged-in admin who changed the status (if different user).
-        const adminUserId = req.user?.userId;
-        if (adminUserId && (!order.user || String(order.user._id) !== String(adminUserId))) {
-            const adminUser = await User.findById(adminUserId).select('pushToken name');
-            if (adminUser?.pushToken) {
-                await sendPushNotification(
-                    adminUser.pushToken,
-                    "Order Status Changed",
-                    `Order #${orderIdShort} marked as ${statusName.toUpperCase()}.`,
-                    { 
-                        screen: 'Orders',
-                        orderId: order.id 
-                    }
-                ).catch(err => console.log("Failed to send admin notification:", err.message));
-            }
-        }
         res.send(order);
     } catch (error) {
         return res.status(500).json({ success: false, error: error.message });
