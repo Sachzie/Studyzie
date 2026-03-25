@@ -7,6 +7,7 @@ const { v2: cloudinary } = require("cloudinary");
 const crypto = require("crypto");
 const https = require("https");
 const Promotion = require("../models/Promotion");
+const { requireAdmin } = require("../middleware/auth");
 
 const FILE_TYPE_MAP = {
   "image/png": "png",
@@ -146,6 +147,50 @@ router.get('/', async (req, res) => {
     res.send(userList);
   } catch (error) {
     return res.status(500).json({ success: false, error: error });
+  }
+});
+
+// GET user push token (admin only)
+router.get('/:id/push-token', requireAdmin, async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id).select('pushToken updatedAt');
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    res.send({
+      success: true,
+      userId: user.id,
+      pushToken: user.pushToken || '',
+      updatedAt: user.updatedAt,
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// CLEAR user push token (admin only)
+router.put('/:id/push-token/clear', requireAdmin, async (req, res) => {
+  try {
+    const user = await User.findByIdAndUpdate(
+      req.params.id,
+      { pushToken: '' },
+      { new: true }
+    ).select('pushToken updatedAt');
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    res.send({
+      success: true,
+      userId: user.id,
+      pushToken: user.pushToken || '',
+      updatedAt: user.updatedAt,
+      message: 'Push token cleared',
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message });
   }
 });
 
