@@ -1,5 +1,6 @@
 ﻿const Order = require('../models/Order');
 const OrderItem = require('../models/OrderItem');
+const User = require('../models/User');
 const Promotion = require('../models/Promotion');
 const Product = require('../models/Product');
 const express = require('express');
@@ -210,15 +211,34 @@ router.put('/:id', requireAdmin, async (req, res)=> {
 
         // Notify the purchasing user.
         if (order.user && order.user.pushToken) {
-            await sendPushNotification(
+            const pushReport = await sendPushNotification(
                 order.user.pushToken,
                 "Order Status Updated",
                 `Your order #${orderIdShort} is now ${statusName.toUpperCase()}. Tap to view details.`,
                 { 
                     screen: 'My Orders', 
                     orderId: order.id 
-                }
-            ).catch(err => console.log("Failed to send customer notification:", err.message));
+                },
+                { throwOnError: false }
+            ).catch(err => {
+                console.log("Failed to send customer notification:", err.message);
+                return null;
+            });
+
+            if (pushReport && pushReport.attempted === 0) {
+                const tokenPreview = order.user.pushToken.slice(0, 20);
+                console.log(`Push skipped: no valid Expo token for user ${order.user._id}. Token starts with: ${tokenPreview}`);
+            }
+
+            if (pushReport?.invalidDeviceTokens?.length) {
+                await User.updateOne(
+                    { _id: order.user._id },
+                    { $set: { pushToken: '' } }
+                );
+                console.log(`Cleared invalid push token for user ${order.user._id}.`);
+            }
+        } else {
+            console.log(`Push skipped: user ${order.user?._id || 'unknown'} has no push token.`);
         }
 
         res.send(order);

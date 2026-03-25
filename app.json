@@ -51,8 +51,9 @@
     ],
     "extra": {
       "eas": {
-        "projectId": "819e638e-82bf-4c60-b20f-a3a715b9f7f1"
+        "projectId": "f7e36831-61ac-435c-8932-85ec9d546fd4"
       }
-    }
+    },
+    "owner": "nerdy1213"
   }
 }
